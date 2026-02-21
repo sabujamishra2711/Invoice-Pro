@@ -52,9 +52,13 @@ function routeRequest($method, $route, $input)
         'settings.logo.upload' => ['POST', 'SettingsController@uploadLogo'],
         'settings.logo.delete' => ['POST', 'SettingsController@deleteLogo'],
 
-        // Email settings routes
-        'email.settings.get' => ['GET', 'SettingsController@getEmailSettings'],
-        'email.settings.update' => ['POST', 'SettingsController@updateEmailSettings'],
+          // Email settings routes
+          'email.settings.get' => ['GET', 'SettingsController@getEmailSettings'],
+          'email.settings.update' => ['POST', 'SettingsController@updateEmailSettings'],
+
+          // UPI QR routes
+          'settings.upi.qr.upload' => ['POST',   'SettingsController@uploadUpiQr'],
+          'settings.upi.qr.delete' => ['DELETE', 'SettingsController@deleteUpiQr'],
 
         // Email send routes
         'invoice.email.send' => ['POST', 'EmailController@send'],

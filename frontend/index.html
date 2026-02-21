@@ -1296,17 +1296,62 @@
                                   <p style="font-size:0.75rem;color:var(--text-tertiary);margin-top:4px;">Leave unchanged (shows ••••••••) to keep existing secret.</p>
                               </div>
 
-                              <div id="rzp-save-msg" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:10px;font-size:0.85rem;"></div>
+                                <div id="rzp-save-msg" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:10px;font-size:0.85rem;"></div>
 
-                              <div style="display:flex;align-items:center;gap:12px;">
-                                  <button type="button" class="btn btn-primary" id="save-payment-gateway-btn">
-                                      <i class="fas fa-check"></i> Save Payment Settings
-                                  </button>
-                                  <div id="rzp-status-badge" style="display:none;"></div>
-                              </div>
-                          </div>
-                      </div>
-                  </div>
+                                <div style="display:flex;align-items:center;gap:12px;">
+                                    <button type="button" class="btn btn-primary" id="save-payment-gateway-btn">
+                                        <i class="fas fa-check"></i> Save Razorpay Settings
+                                    </button>
+                                    <div id="rzp-status-badge" style="display:none;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- UPI / QR Code Card -->
+                        <div class="card" style="margin-top:20px;">
+                            <div class="card-body">
+                                <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:24px;">
+                                    <div style="width:42px;height:42px;border-radius:10px;background:#dcfce7;display:flex;align-items:center;justify-content:center;color:#16a34a;font-size:1.2rem;flex-shrink:0;">
+                                        <i class="fas fa-qrcode"></i>
+                                    </div>
+                                    <div>
+                                        <h4 style="margin:0;font-size:0.95rem;font-weight:700;color:var(--text-primary);">UPI / QR Code Payment</h4>
+                                        <p style="margin:4px 0 0;font-size:0.82rem;color:var(--text-tertiary);">Add your UPI ID and/or a QR code image so clients can pay directly via any UPI app (GPay, PhonePe, Paytm, etc.).</p>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label class="form-label">UPI ID</label>
+                                    <input type="text" class="form-control" id="setting-upi-id" placeholder="yourname@upi  or  phone@paytm">
+                                    <p style="font-size:0.75rem;color:var(--text-tertiary);margin-top:4px;">e.g. <code>business@okicici</code>, <code>9876543210@ybl</code></p>
+                                </div>
+
+                                <!-- QR code upload -->
+                                <div class="form-group" style="margin-top:4px;">
+                                    <label class="form-label">UPI QR Code Image <span style="font-weight:400;color:var(--text-tertiary);">(optional)</span></label>
+                                    <div id="upi-qr-preview-wrap" style="display:none;margin-bottom:12px;position:relative;width:fit-content;">
+                                        <img id="upi-qr-preview-img" src="" alt="UPI QR Code" style="width:160px;height:160px;object-fit:contain;border:1px solid #e2e8f0;border-radius:10px;padding:6px;background:#fff;">
+                                        <button type="button" id="delete-upi-qr-btn" title="Remove QR code" style="position:absolute;top:-8px;right:-8px;background:#ef4444;color:#fff;border:none;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.75rem;line-height:1;"><i class="fas fa-times"></i></button>
+                                    </div>
+                                    <div id="upi-qr-upload-area" style="border:2px dashed #e2e8f0;border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:border-color .15s;" onclick="document.getElementById('upi-qr-file-input').click()">
+                                        <i class="fas fa-qrcode" style="font-size:1.8rem;color:#94a3b8;margin-bottom:8px;display:block;"></i>
+                                        <div style="font-size:0.85rem;color:#64748b;font-weight:600;">Click to upload QR code</div>
+                                        <div style="font-size:0.75rem;color:#94a3b8;margin-top:4px;">PNG, JPG, WebP — max 2 MB</div>
+                                    </div>
+                                    <input type="file" id="upi-qr-file-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;">
+                                </div>
+
+                                <div id="upi-save-msg" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:10px;font-size:0.85rem;"></div>
+
+                                <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+                                    <button type="button" class="btn btn-primary" id="save-upi-btn">
+                                        <i class="fas fa-check"></i> Save UPI Settings
+                                    </button>
+                                    <div id="upi-status-badge" style="display:none;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
 
                   <!-- Account Settings Tab -->
                   <div class="tab-panel" id="tab-account-settings">

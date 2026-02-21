@@ -17,22 +17,29 @@ class SettingsController
 
             if (!$settings) {
                 $settings = [
-                    'business_name'     => '',
-                    'logo_path'         => null,
-                    'logo_url'          => null,
-                    'address'           => null,
-                    'gst_number'        => null,
-                    'default_tax'       => 18.00,
-                    'payment_terms'     => null,
-                    'invoice_prefix'    => 'INV',
-                    'number_format'     => 'YYYY-MM-NNNN',
-                    'razorpay_key_id'   => null,
+                    'business_name'       => '',
+                    'logo_path'           => null,
+                    'logo_url'            => null,
+                    'address'             => null,
+                    'gst_number'          => null,
+                    'default_tax'         => 18.00,
+                    'payment_terms'       => null,
+                    'invoice_prefix'      => 'INV',
+                    'number_format'       => 'YYYY-MM-NNNN',
+                    'razorpay_key_id'     => null,
                     'razorpay_key_secret' => null,
+                    'upi_id'              => null,
+                    'upi_qr_path'         => null,
+                    'upi_qr_url'          => null,
                 ];
             } else {
                 // Build a publicly accessible URL for the logo
                 $settings['logo_url'] = !empty($settings['logo_path'])
                     ? LOGO_PUBLIC_URL . basename($settings['logo_path'])
+                    : null;
+                // Build UPI QR URL
+                $settings['upi_qr_url'] = !empty($settings['upi_qr_path'])
+                    ? LOGO_PUBLIC_URL . basename($settings['upi_qr_path'])
                     : null;
                 // Never expose the raw secret to the client
                 if (!empty($settings['razorpay_key_secret'])) {
@@ -190,6 +197,91 @@ class SettingsController
         }
     }
 
+    public function uploadUpiQr($input)
+    {
+        try {
+            $userId = authenticateRequest();
+
+            if (empty($_FILES['upi_qr'])) {
+                return ['success' => false, 'error_code' => 'NO_FILE', 'message' => 'No file uploaded.', 'http_code' => 400];
+            }
+
+            $file = $_FILES['upi_qr'];
+            if ($file['error'] !== UPLOAD_ERR_OK) {
+                return ['success' => false, 'error_code' => 'UPLOAD_ERROR', 'message' => 'File upload failed.', 'http_code' => 400];
+            }
+
+            $allowedMime = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+            $finfo = new finfo(FILEINFO_MIME_TYPE);
+            $mime  = $finfo->file($file['tmp_name']);
+            if (!in_array($mime, $allowedMime, true)) {
+                return ['success' => false, 'error_code' => 'INVALID_TYPE', 'message' => 'Only JPG, PNG, GIF, WebP allowed.', 'http_code' => 400];
+            }
+
+            if ($file['size'] > 2 * 1024 * 1024) {
+                return ['success' => false, 'error_code' => 'FILE_TOO_LARGE', 'message' => 'Image must be under 2 MB.', 'http_code' => 400];
+            }
+
+            $extMap = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/gif' => 'gif', 'image/webp' => 'webp'];
+            $ext = $extMap[$mime];
+
+            $db   = getDB();
+            $stmt = $db->prepare("SELECT upi_qr_path FROM settings WHERE user_id = ?");
+            $stmt->execute([$userId]);
+            $existing = $stmt->fetch();
+
+            // Delete old QR if present
+            if ($existing && !empty($existing['upi_qr_path'])) {
+                $old = LOGO_STORAGE_PATH . basename($existing['upi_qr_path']);
+                if (file_exists($old)) @unlink($old);
+            }
+
+            $filename = 'upi_qr_' . $userId . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
+            $dest     = LOGO_STORAGE_PATH . $filename;
+
+            if (!is_dir(LOGO_STORAGE_PATH)) mkdir(LOGO_STORAGE_PATH, 0755, true);
+
+            if (!move_uploaded_file($file['tmp_name'], $dest)) {
+                return ['success' => false, 'error_code' => 'SAVE_FAILED', 'message' => 'Could not save image.', 'http_code' => 500];
+            }
+
+            if ($existing) {
+                $db->prepare("UPDATE settings SET upi_qr_path = ? WHERE user_id = ?")->execute([$filename, $userId]);
+            } else {
+                $db->prepare("INSERT INTO settings (user_id, business_name, upi_qr_path) VALUES (?, '', ?)")->execute([$userId, $filename]);
+            }
+
+            return [
+                'success' => true,
+                'message' => 'UPI QR uploaded successfully.',
+                'data'    => ['upi_qr_url' => LOGO_PUBLIC_URL . $filename, 'upi_qr_path' => $filename]
+            ];
+        } catch (Exception $e) {
+            return ['success' => false, 'error_code' => 'UPI_QR_UPLOAD_FAILED', 'message' => $e->getMessage(), 'http_code' => 500];
+        }
+    }
+
+    public function deleteUpiQr($input)
+    {
+        try {
+            $userId = authenticateRequest();
+            $db     = getDB();
+            $stmt   = $db->prepare("SELECT upi_qr_path FROM settings WHERE user_id = ?");
+            $stmt->execute([$userId]);
+            $row = $stmt->fetch();
+
+            if ($row && !empty($row['upi_qr_path'])) {
+                $file = LOGO_STORAGE_PATH . basename($row['upi_qr_path']);
+                if (file_exists($file)) @unlink($file);
+                $db->prepare("UPDATE settings SET upi_qr_path = NULL WHERE user_id = ?")->execute([$userId]);
+            }
+
+            return ['success' => true, 'message' => 'UPI QR removed.'];
+        } catch (Exception $e) {
+            return ['success' => false, 'error_code' => 'UPI_QR_DELETE_FAILED', 'message' => $e->getMessage(), 'http_code' => 500];
+        }
+    }
+
     public function updateEmailSettings($input)
     {
         try {
@@ -265,38 +357,40 @@ class SettingsController
                     $rzpSecret = $r['razorpay_key_secret'] ?? null;
                 }
 
-                $stmt = $db->prepare("
-                    UPDATE settings SET
-                        business_name = ?,
-                        address = ?,
-                        gst_number = ?,
-                        default_tax = ?,
-                        payment_terms = ?,
-                        invoice_prefix = ?,
-                        number_format = ?,
-                        razorpay_key_id = ?,
-                        razorpay_key_secret = ?
-                    WHERE user_id = ?
-                ");
-                $stmt->execute([
-                    $input['business_name'] ?? '',
-                    $input['address'] ?? null,
-                    $input['gst_number'] ?? null,
-                    $input['default_tax'] ?? 18.00,
-                    $input['payment_terms'] ?? null,
-                    $input['invoice_prefix'] ?? 'INV',
-                    $input['number_format'] ?? 'YYYY-MM-NNNN',
-                    $input['razorpay_key_id'] ?: null,
-                    $rzpSecret ?: null,
-                    $userId
-                ]);
+                  $stmt = $db->prepare("
+                      UPDATE settings SET
+                          business_name = ?,
+                          address = ?,
+                          gst_number = ?,
+                          default_tax = ?,
+                          payment_terms = ?,
+                          invoice_prefix = ?,
+                          number_format = ?,
+                          razorpay_key_id = ?,
+                          razorpay_key_secret = ?,
+                          upi_id = ?
+                      WHERE user_id = ?
+                  ");
+                  $stmt->execute([
+                      $input['business_name'] ?? '',
+                      $input['address'] ?? null,
+                      $input['gst_number'] ?? null,
+                      $input['default_tax'] ?? 18.00,
+                      $input['payment_terms'] ?? null,
+                      $input['invoice_prefix'] ?? 'INV',
+                      $input['number_format'] ?? 'YYYY-MM-NNNN',
+                      $input['razorpay_key_id'] ?: null,
+                      $rzpSecret ?: null,
+                      $input['upi_id'] ?: null,
+                      $userId
+                  ]);
             } else {
                 $rzpSecret = $updateRzpSecret ? $newRzpSecret : null;
                 $stmt = $db->prepare("
                     INSERT INTO settings (
                         user_id, business_name, address, gst_number, default_tax, payment_terms,
-                        invoice_prefix, number_format, razorpay_key_id, razorpay_key_secret
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        invoice_prefix, number_format, razorpay_key_id, razorpay_key_secret, upi_id
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([
                     $userId,
@@ -309,6 +403,7 @@ class SettingsController
                     $input['number_format'] ?? 'YYYY-MM-NNNN',
                     $input['razorpay_key_id'] ?: null,
                     $rzpSecret ?: null,
+                    $input['upi_id'] ?: null,
                 ]);
             }
 
@@ -319,6 +414,9 @@ class SettingsController
             if (!empty($settings['razorpay_key_secret'])) {
                 $settings['razorpay_key_secret'] = '••••••••';
             }
+            $settings['upi_qr_url'] = !empty($settings['upi_qr_path'])
+                ? LOGO_PUBLIC_URL . basename($settings['upi_qr_path'])
+                : null;
 
             return [
                 'success' => true,
