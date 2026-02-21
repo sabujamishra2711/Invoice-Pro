@@ -2361,27 +2361,224 @@ class UIManager {
     }
 
     /**
-     * Show the upgrade modal with context about what limit was hit.
+     * Show the new full-screen upgrade modal.
      */
     showUpgradeModal(resource = null, current = null, limit = null, currentPlan = null) {
         const modal = document.getElementById('upgrade-modal');
         if (!modal) return;
 
-        const titleEl   = document.getElementById('upgrade-modal-title');
-        const reasonEl  = document.getElementById('upgrade-modal-reason');
-
-        if (resource && limit !== null) {
-            const planLabels = { pro: 'Pro', professional: 'Professional', enterprise: 'Enterprise' };
-            const planLabel  = planLabels[currentPlan] || currentPlan || 'current';
-            if (titleEl)  titleEl.textContent  = `${resource.charAt(0).toUpperCase() + resource.slice(1)} Limit Reached`;
-            if (reasonEl) reasonEl.textContent =
-                `Your ${planLabel} plan allows up to ${limit} ${resource}s. You currently have ${current}. Upgrade your plan to add more.`;
-        } else {
-            if (titleEl)  titleEl.textContent  = 'Upgrade Your Plan';
-            if (reasonEl) reasonEl.textContent = 'Unlock higher limits and more features by upgrading.';
+        // Update subtitle
+        const reasonEl = document.getElementById('upgrade-modal-reason');
+        if (reasonEl) {
+            if (resource && limit !== null) {
+                const planLabels = { pro: 'Pro', professional: 'Professional', enterprise: 'Enterprise' };
+                const planLabel  = planLabels[currentPlan] || currentPlan || 'your current';
+                reasonEl.textContent =
+                    `Your ${planLabel} plan allows up to ${limit} ${resource}s (you have ${current}). Upgrade to unlock more.`;
+            } else {
+                reasonEl.textContent = 'Unlock higher limits and powerful features for your business.';
+            }
         }
 
-        this.openModal('upgrade-modal');
+        // Highlight the card matching current plan
+        ['pro', 'professional', 'enterprise'].forEach(p => {
+            const card = document.getElementById(`upg-card-${p}`);
+            if (card) card.classList.toggle('upg-card--active', p === currentPlan);
+        });
+
+        // Show cards view, hide calc view
+        const cardsView = document.getElementById('upg-cards-view');
+        const calcView  = document.getElementById('upg-calc-view');
+        if (cardsView) cardsView.style.display = '';
+        if (calcView)  calcView.style.display  = 'none';
+
+        // Show modal
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+
+        // Init event listeners (idempotent)
+        this._initUpgradeModalEvents();
+    }
+
+    _initUpgradeModalEvents() {
+        if (this._upgEventsInited) return;
+        this._upgEventsInited = true;
+
+        const modal     = document.getElementById('upgrade-modal');
+        const closeBtn  = document.getElementById('upg-close-btn');
+        const cardsView = document.getElementById('upg-cards-view');
+        const calcView  = document.getElementById('upg-calc-view');
+        const configBtn = document.getElementById('upg-configure-enterprise');
+        const backBtn   = document.getElementById('upg-calc-back');
+        const payPro    = document.getElementById('upg-pay-professional');
+        const payEnt    = document.getElementById('upg-pay-enterprise');
+
+        // Close on X or backdrop
+        if (closeBtn) closeBtn.addEventListener('click', () => this._closeUpgradeModal());
+        if (modal) modal.addEventListener('click', e => {
+            if (e.target === modal) this._closeUpgradeModal();
+        });
+
+        // Enterprise configure button → show calculator
+        if (configBtn) configBtn.addEventListener('click', () => {
+            if (cardsView) cardsView.style.display = 'none';
+            if (calcView)  calcView.style.display  = '';
+            this._initEnterpriseCalc();
+        });
+
+        // Back from calculator
+        if (backBtn) backBtn.addEventListener('click', () => {
+            if (cardsView) cardsView.style.display = '';
+            if (calcView)  calcView.style.display  = 'none';
+        });
+
+        // Pay professional
+        if (payPro) payPro.addEventListener('click', () => this._startPayment('professional'));
+
+        // Pay enterprise (from summary card)
+        if (payEnt) payEnt.addEventListener('click', () => {
+            const clients  = parseInt(document.getElementById('ent-clients-input')?.value)  || 200;
+            const invoices = parseInt(document.getElementById('ent-invoices-input')?.value) || 500;
+            this._startPayment('enterprise', clients - 200, invoices - 500);
+        });
+    }
+
+    _closeUpgradeModal() {
+        const modal = document.getElementById('upgrade-modal');
+        if (modal) modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    _initEnterpriseCalc() {
+        const cSlider = document.getElementById('ent-clients-slider');
+        const cInput  = document.getElementById('ent-clients-input');
+        const iSlider = document.getElementById('ent-invoices-slider');
+        const iInput  = document.getElementById('ent-invoices-input');
+
+        const updateCalc = () => {
+            const clients  = Math.max(200, parseInt(cInput.value)  || 200);
+            const invoices = Math.max(500, parseInt(iInput.value) || 500);
+
+            const extraC   = Math.max(0, clients  - 200);
+            const extraI   = Math.max(0, invoices - 500);
+            const total    = 2999 + (extraC * 50) + (extraI * 20);
+
+            // Sync slider ↔ input
+            if (cSlider) cSlider.value = Math.min(clients,  parseInt(cSlider.max));
+            if (iSlider) iSlider.value = Math.min(invoices, parseInt(iSlider.max));
+
+            // Extra client row
+            const ecRow  = document.getElementById('ent-extra-c-row');
+            const ecLbl  = document.getElementById('ent-extra-c-label');
+            const ecCost = document.getElementById('ent-extra-c-cost');
+            if (ecRow) ecRow.style.display = extraC > 0 ? '' : 'none';
+            if (ecLbl)  ecLbl.textContent  = `${extraC} extra clients × ₹50`;
+            if (ecCost) ecCost.textContent = `+₹${(extraC * 50).toLocaleString('en-IN')}`;
+
+            // Extra invoice row
+            const eiRow  = document.getElementById('ent-extra-i-row');
+            const eiLbl  = document.getElementById('ent-extra-i-label');
+            const eiCost = document.getElementById('ent-extra-i-cost');
+            if (eiRow) eiRow.style.display = extraI > 0 ? '' : 'none';
+            if (eiLbl)  eiLbl.textContent  = `${extraI} extra invoices × ₹20`;
+            if (eiCost) eiCost.textContent = `+₹${(extraI * 20).toLocaleString('en-IN')}`;
+
+            // Total
+            const totalStr = `₹${total.toLocaleString('en-IN')}`;
+            const totEl  = document.getElementById('ent-total-display');
+            const sumP   = document.getElementById('ent-sum-price');
+            if (totEl) totEl.textContent  = totalStr;
+            if (sumP)  sumP.textContent   = totalStr;
+
+            // Summary
+            const sumC = document.getElementById('ent-sum-clients');
+            const sumI = document.getElementById('ent-sum-invoices');
+            if (sumC) sumC.textContent = `${clients.toLocaleString('en-IN')} clients`;
+            if (sumI) sumI.textContent = `${invoices.toLocaleString('en-IN')} invoices`;
+        };
+
+        // Wire events (once per slider pair)
+        if (cSlider && !cSlider._wired) {
+            cSlider._wired = true;
+            cSlider.addEventListener('input', () => { cInput.value = cSlider.value; updateCalc(); });
+            cInput.addEventListener('input',  () => updateCalc());
+            iSlider.addEventListener('input', () => { iInput.value = iSlider.value; updateCalc(); });
+            iInput.addEventListener('input',  () => updateCalc());
+        }
+
+        updateCalc();
+    }
+
+    async _startPayment(plan, extraClients = 0, extraInvoices = 0) {
+        const btn = plan === 'professional'
+            ? document.getElementById('upg-pay-professional')
+            : document.getElementById('upg-pay-enterprise');
+
+        const origHtml = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating order…'; }
+
+        try {
+            const res = await api.createRazorpayOrder(plan, extraClients, extraInvoices);
+            if (!res?.success) {
+                this.showToast('error', 'Order Failed', res?.message || 'Could not create order. Please try again.');
+                return;
+            }
+
+            const d = res.data;
+            const options = {
+                key:          d.key_id,
+                amount:       d.amount,
+                currency:     d.currency,
+                order_id:     d.order_id,
+                name:         'InvoicePro',
+                description:  plan === 'professional' ? 'Professional Plan' : 'Enterprise Plan',
+                image:        '/invoice-management/frontend/images/logo.png',
+                prefill: {
+                    name:  d.user_name  || '',
+                    email: d.user_email || '',
+                },
+                theme: { color: '#6366f1' },
+                handler: async (response) => {
+                    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying…'; }
+                    await this._verifyPayment(response, plan);
+                },
+                modal: {
+                    ondismiss: () => {
+                        if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+                    }
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.open();
+
+        } catch (e) {
+            this.showToast('error', 'Payment Error', e.message || 'Unexpected error. Please try again.');
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = origHtml; }
+        }
+    }
+
+    async _verifyPayment(response, plan) {
+        try {
+            const res = await api.verifyRazorpayPayment(
+                response.razorpay_order_id,
+                response.razorpay_payment_id,
+                response.razorpay_signature
+            );
+
+            if (res?.success) {
+                this._closeUpgradeModal();
+                this.showToast('success', 'Plan Activated!',
+                    `Your ${plan === 'professional' ? 'Professional' : 'Enterprise'} plan is now active. Enjoy your new limits!`);
+                // Refresh plan usage display if visible
+                setTimeout(() => this.loadPlanUsage(), 800);
+            } else {
+                this.showToast('error', 'Verification Failed', res?.message || 'Payment could not be verified. Contact support.');
+            }
+        } catch (e) {
+            this.showToast('error', 'Verification Error', e.message);
+        }
     }
 
     /**

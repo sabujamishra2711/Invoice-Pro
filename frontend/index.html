@@ -1157,63 +1157,197 @@
         </div>
     </div>
 
-    <!-- ═══════════ Upgrade Plan Modal ═══════════ -->
-    <div class="modal-overlay" id="upgrade-modal">
-        <div class="modal-container" style="max-width:500px;">
-            <div class="modal-header" style="border-bottom:none;padding-bottom:0;">
-                <button class="modal-close" onclick="uiManager.closeModal('upgrade-modal')"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="modal-body" style="padding-top:8px;text-align:center;">
-                <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;">
-                    <i class="fas fa-crown" style="color:#fff;"></i>
-                </div>
-                <h3 id="upgrade-modal-title" style="margin:0 0 10px;font-size:1.25rem;">Upgrade Your Plan</h3>
-                <p id="upgrade-modal-reason" style="color:var(--text-secondary);font-size:0.9rem;margin:0 0 24px;line-height:1.6;"></p>
+    <!-- ═══════════ Upgrade Plan Modal (Full-Screen) ═══════════ -->
+    <div class="upg-overlay" id="upgrade-modal" style="display:none;">
+        <div class="upg-sheet">
 
-                <!-- Plan comparison cards -->
-                <div class="upgrade-plans-grid">
-                    <div class="upgrade-plan-card">
-                        <div class="upgrade-plan-name">Pro</div>
-                        <div class="upgrade-plan-limits">10 clients &middot; 25 invoices</div>
-                        <ul class="upgrade-plan-features">
-                            <li><i class="fas fa-check"></i> Basic Reports</li>
-                            <li><i class="fas fa-check"></i> Email Invoices</li>
-                            <li class="na"><i class="fas fa-times"></i> Custom Branding</li>
-                            <li class="na"><i class="fas fa-times"></i> Export Reports</li>
+            <!-- Close -->
+            <button class="upg-close" id="upg-close-btn">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <!-- Header -->
+            <div class="upg-header">
+                <div class="upg-crown-wrap">
+                    <div class="upg-crown-ring"></div>
+                    <div class="upg-crown-icon"><i class="fas fa-crown"></i></div>
+                </div>
+                <h2 class="upg-title">Upgrade Your Plan</h2>
+                <p class="upg-subtitle" id="upgrade-modal-reason">Choose the plan that grows with your business</p>
+            </div>
+
+            <!-- ── PLAN CARDS VIEW ── -->
+            <div id="upg-cards-view">
+                <div class="upg-cards">
+
+                    <!-- Pro (free / current) -->
+                    <div class="upg-card upg-card--free" id="upg-card-pro">
+                        <div class="upg-card-tag upg-tag--current">Current Plan</div>
+                        <div class="upg-card-icon upg-icon--free"><i class="fas fa-seedling"></i></div>
+                        <div class="upg-card-name">Pro</div>
+                        <div class="upg-card-price">
+                            <span class="upg-price-big">Free</span>
+                        </div>
+                        <div class="upg-card-tagline">Perfect for freelancers getting started</div>
+                        <ul class="upg-feat">
+                            <li class="yes"><i class="fas fa-check-circle"></i> Up to 10 clients</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> Up to 20 invoices</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> PDF generation</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> Email delivery</li>
+                            <li class="no"><i class="fas fa-times-circle"></i> Custom branding</li>
+                            <li class="no"><i class="fas fa-times-circle"></i> Report exports</li>
+                            <li class="no"><i class="fas fa-times-circle"></i> Multi-currency</li>
+                            <li class="no"><i class="fas fa-times-circle"></i> API access</li>
                         </ul>
-                        <div class="upgrade-plan-badge current">Current</div>
+                        <button class="upg-btn upg-btn--ghost" disabled>Your Current Plan</button>
                     </div>
-                    <div class="upgrade-plan-card highlighted">
-                        <div class="upgrade-plan-name">Professional</div>
-                        <div class="upgrade-plan-limits">100 clients &middot; 500 invoices</div>
-                        <ul class="upgrade-plan-features">
-                            <li><i class="fas fa-check"></i> Advanced Reports</li>
-                            <li><i class="fas fa-check"></i> Export CSV/PDF</li>
-                            <li><i class="fas fa-check"></i> Custom Branding</li>
-                            <li><i class="fas fa-check"></i> Multi-Currency</li>
+
+                    <!-- Professional -->
+                    <div class="upg-card upg-card--pro" id="upg-card-professional">
+                        <div class="upg-card-tag upg-tag--popular">⚡ Most Popular</div>
+                        <div class="upg-card-icon upg-icon--pro"><i class="fas fa-bolt"></i></div>
+                        <div class="upg-card-name">Professional</div>
+                        <div class="upg-card-price">
+                            <span class="upg-price-currency">₹</span>
+                            <span class="upg-price-big">999</span>
+                            <span class="upg-price-period">/month</span>
+                        </div>
+                        <div class="upg-card-tagline">For growing businesses needing more</div>
+                        <ul class="upg-feat">
+                            <li class="yes"><i class="fas fa-check-circle"></i> Up to 50 clients</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> Up to 100 invoices</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> PDF generation</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> Email delivery</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> Custom branding</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> Report exports</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> Multi-currency</li>
+                            <li class="no"><i class="fas fa-times-circle"></i> API access</li>
                         </ul>
-                        <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="uiManager.showToast('info','Coming Soon','Plan upgrades will be available soon.')">Upgrade</button>
+                        <button class="upg-btn upg-btn--pro" id="upg-pay-professional">
+                            <i class="fas fa-bolt"></i> Upgrade — ₹999/mo
+                        </button>
                     </div>
-                    <div class="upgrade-plan-card">
-                        <div class="upgrade-plan-name">Enterprise</div>
-                        <div class="upgrade-plan-limits">Unlimited everything</div>
-                        <ul class="upgrade-plan-features">
-                            <li><i class="fas fa-check"></i> Team Collaboration</li>
-                            <li><i class="fas fa-check"></i> API Access</li>
-                            <li><i class="fas fa-check"></i> Priority Support</li>
-                            <li><i class="fas fa-check"></i> Bulk Import/Export</li>
+
+                    <!-- Enterprise -->
+                    <div class="upg-card upg-card--ent" id="upg-card-enterprise">
+                        <div class="upg-card-tag upg-tag--ent">🏢 Enterprise</div>
+                        <div class="upg-card-icon upg-icon--ent"><i class="fas fa-building"></i></div>
+                        <div class="upg-card-name">Enterprise</div>
+                        <div class="upg-card-price">
+                            <span class="upg-price-currency">₹</span>
+                            <span class="upg-price-big">2,999</span>
+                            <span class="upg-price-period">base</span>
+                        </div>
+                        <div class="upg-card-tagline">Custom limits built around your volume</div>
+                        <ul class="upg-feat">
+                            <li class="yes"><i class="fas fa-check-circle"></i> 200+ clients (custom)</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> 500+ invoices (custom)</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> Everything in Professional</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> Full API access</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> Priority support</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> Dedicated onboarding</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> Custom client limits</li>
+                            <li class="yes"><i class="fas fa-check-circle"></i> Custom invoice limits</li>
                         </ul>
-                        <button class="btn btn-secondary" style="width:100%;margin-top:8px;" onclick="uiManager.showToast('info','Coming Soon','Plan upgrades will be available soon.')">Contact Us</button>
+                        <button class="upg-btn upg-btn--ent" id="upg-configure-enterprise">
+                            <i class="fas fa-sliders-h"></i> Configure &amp; Buy
+                        </button>
+                    </div>
+
+                </div>
+            </div><!-- /upg-cards-view -->
+
+            <!-- ── ENTERPRISE CALCULATOR VIEW ── -->
+            <div id="upg-calc-view" style="display:none;">
+                <button class="upg-back-btn" id="upg-calc-back">
+                    <i class="fas fa-arrow-left"></i> Back to Plans
+                </button>
+
+                <div class="upg-calc-wrap">
+                    <!-- Left: sliders & breakdown -->
+                    <div class="upg-calc-left">
+                        <div class="upg-calc-head">
+                            <div class="upg-calc-head-icon"><i class="fas fa-building"></i></div>
+                            <div>
+                                <div class="upg-calc-head-title">Enterprise Plan Calculator</div>
+                                <div class="upg-calc-head-sub">Set your exact limits — pay only for what you need</div>
+                            </div>
+                        </div>
+
+                        <div class="upg-calc-field">
+                            <div class="upg-calc-label">
+                                <span><i class="fas fa-users"></i> Total Clients</span>
+                                <span class="upg-calc-hint">Base 200 included · +₹50 each extra</span>
+                            </div>
+                            <div class="upg-slider-row">
+                                <input type="range"   id="ent-clients-slider" class="upg-slider" min="200" max="2000" step="50"  value="200">
+                                <input type="number"  id="ent-clients-input"  class="upg-num"    min="200" max="5000"            value="200">
+                            </div>
+                        </div>
+
+                        <div class="upg-calc-field">
+                            <div class="upg-calc-label">
+                                <span><i class="fas fa-file-invoice"></i> Total Invoices</span>
+                                <span class="upg-calc-hint">Base 500 included · +₹20 each extra</span>
+                            </div>
+                            <div class="upg-slider-row">
+                                <input type="range"   id="ent-invoices-slider" class="upg-slider" min="500" max="10000" step="100" value="500">
+                                <input type="number"  id="ent-invoices-input"  class="upg-num"    min="500" max="50000"             value="500">
+                            </div>
+                        </div>
+
+                        <div class="upg-breakdown">
+                            <div class="upg-breakdown-row">
+                                <span>Base price (200 clients + 500 invoices)</span>
+                                <span>₹2,999</span>
+                            </div>
+                            <div class="upg-breakdown-row" id="ent-extra-c-row" style="display:none;">
+                                <span id="ent-extra-c-label">Extra clients</span>
+                                <span id="ent-extra-c-cost" class="upg-cost-add">+₹0</span>
+                            </div>
+                            <div class="upg-breakdown-row" id="ent-extra-i-row" style="display:none;">
+                                <span id="ent-extra-i-label">Extra invoices</span>
+                                <span id="ent-extra-i-cost" class="upg-cost-add">+₹0</span>
+                            </div>
+                            <div class="upg-breakdown-total">
+                                <span>Total (one-time)</span>
+                                <span id="ent-total-display">₹2,999</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: summary card -->
+                    <div class="upg-calc-right">
+                        <div class="upg-summary-card">
+                            <div class="upg-summary-title">Your Enterprise Plan</div>
+                            <div class="upg-summary-row"><i class="fas fa-users"></i><span id="ent-sum-clients">200 clients</span></div>
+                            <div class="upg-summary-row"><i class="fas fa-file-invoice"></i><span id="ent-sum-invoices">500 invoices</span></div>
+                            <div class="upg-summary-row"><i class="fas fa-crown"></i><span>All Professional features</span></div>
+                            <div class="upg-summary-row"><i class="fas fa-headset"></i><span>Priority support</span></div>
+                            <div class="upg-summary-row"><i class="fas fa-code"></i><span>Full API access</span></div>
+                            <div class="upg-summary-price">
+                                <span id="ent-sum-price">₹2,999</span>
+                                <span class="upg-summary-once">one-time</span>
+                            </div>
+                            <button class="upg-btn upg-btn--ent" id="upg-pay-enterprise">
+                                <i class="fas fa-lock"></i> Pay &amp; Activate
+                            </button>
+                            <div class="upg-rzp-badge"><i class="fas fa-shield-alt"></i> Secured by Razorpay</div>
+                        </div>
                     </div>
                 </div>
+            </div><!-- /upg-calc-view -->
+
+            <!-- Footer -->
+            <div class="upg-footer">
+                <i class="fas fa-lock"></i> All payments are 256-bit SSL encrypted and processed securely by <strong>Razorpay</strong>
             </div>
-            <div class="modal-footer" style="justify-content:center;border-top:none;">
-                <button class="btn btn-secondary" onclick="uiManager.closeModal('upgrade-modal')">Maybe Later</button>
-            </div>
+
         </div>
     </div>
 
     <!-- Scripts -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script src="js/config.js?v=2.0"></script>
     <script src="js/auth.js?v=2.0"></script>
     <script src="js/api.js?v=2.0"></script>

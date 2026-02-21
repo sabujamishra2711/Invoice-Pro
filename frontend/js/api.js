@@ -200,6 +200,25 @@ class ApiClient {
     async setPlan(plan) {
         return await this.request('version.plan.set', 'POST', { plan });
     }
+
+    // ── Razorpay ──
+    async createRazorpayOrder(plan, extraClients = 0, extraInvoices = 0) {
+        return await this.request('razorpay.order.create', 'POST', {
+            plan, extra_clients: extraClients, extra_invoices: extraInvoices
+        });
+    }
+
+    async verifyRazorpayPayment(orderId, paymentId, signature) {
+        return await this.request('razorpay.payment.verify', 'POST', {
+            razorpay_order_id: orderId,
+            razorpay_payment_id: paymentId,
+            razorpay_signature: signature
+        });
+    }
+
+    async getRazorpayPricing() {
+        return await this.request('razorpay.pricing');
+    }
 }
 
 // Global API instance
