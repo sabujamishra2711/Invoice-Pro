@@ -327,4 +327,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     console.log('✅ InvoicePro initialized');
+
+    // ── Email Settings Handlers ──
+    document.getElementById('save-email-settings')?.addEventListener('click', () => {
+        uiManager.saveEmailSettings();
+    });
+
+    document.getElementById('test-smtp-btn')?.addEventListener('click', () => {
+        uiManager.testSmtpConnection();
+    });
+
+    // Load email settings when the email tab is opened
+    document.querySelector('[data-tab="email-settings"]')?.addEventListener('click', () => {
+        uiManager.loadEmailSettings();
+    });
+
+    // ── Send Email Modal — Send button ──
+    document.getElementById('send-email-btn')?.addEventListener('click', () => {
+        uiManager._doSendEmail();
+    });
 });

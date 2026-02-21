@@ -157,6 +157,22 @@ class ApiClient {
         return await this.request('settings.update', 'PUT', data);
     }
 
+    async getEmailSettings() {
+        return await this.request('email.settings.get');
+    }
+
+    async updateEmailSettings(data) {
+        return await this.request('email.settings.update', 'POST', data);
+    }
+
+    async testSmtpConnection(data) {
+        return await this.request('email.settings.test', 'POST', data);
+    }
+
+    async sendInvoiceEmail(data) {
+        return await this.request('invoice.email.send', 'POST', data);
+    }
+
     // ── Auth ──
     async login(email, password) {
         return await this.request('auth.login', 'POST', { email, password });

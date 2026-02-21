@@ -43,6 +43,85 @@ class SettingsController
         }
     }
 
+    public function getEmailSettings($input)
+    {
+        try {
+            $userId = authenticateRequest();
+            $db     = getDB();
+
+            $stmt = $db->prepare("SELECT * FROM email_settings WHERE user_id = ? LIMIT 1");
+            $stmt->execute([$userId]);
+            $emailSettings = $stmt->fetch();
+
+            if (!$emailSettings) {
+                $emailSettings = [
+                    'smtp_host'       => '',
+                    'smtp_port'       => 587,
+                    'smtp_username'   => '',
+                    'smtp_password'   => '',
+                    'smtp_encryption' => 'tls',
+                    'smtp_from_email' => '',
+                    'smtp_from_name'  => '',
+                ];
+            } else {
+                // Never expose the raw password back to the client
+                $emailSettings['smtp_password'] = $emailSettings['smtp_password'] ? '••••••••' : '';
+            }
+
+            return ['success' => true, 'data' => ['email_settings' => $emailSettings]];
+        } catch (Exception $e) {
+            return ['success' => false, 'error_code' => 'EMAIL_SETTINGS_GET_FAILED', 'message' => 'Failed to fetch email settings', 'http_code' => 500];
+        }
+    }
+
+    public function updateEmailSettings($input)
+    {
+        try {
+            $userId = authenticateRequest();
+            $db     = getDB();
+
+            $host       = trim($input['smtp_host']       ?? '');
+            $port       = (int)($input['smtp_port']      ?? 587);
+            $username   = trim($input['smtp_username']   ?? '');
+            $encryption = trim($input['smtp_encryption'] ?? 'tls');
+            $fromEmail  = trim($input['smtp_from_email'] ?? '');
+            $fromName   = trim($input['smtp_from_name']  ?? '');
+
+            // Only update password if a real value was provided (not the masked placeholder)
+            $newPassword = $input['smtp_password'] ?? '';
+            $updatePassword = $newPassword !== '' && $newPassword !== '••••••••';
+
+            // Check existing
+            $stmt = $db->prepare("SELECT id, smtp_password FROM email_settings WHERE user_id = ? LIMIT 1");
+            $stmt->execute([$userId]);
+            $existing = $stmt->fetch();
+
+            if ($existing) {
+                $password = $updatePassword ? $newPassword : $existing['smtp_password'];
+                $stmt = $db->prepare("
+                    UPDATE email_settings SET
+                        smtp_host = ?, smtp_port = ?, smtp_username = ?,
+                        smtp_password = ?, smtp_encryption = ?,
+                        smtp_from_email = ?, smtp_from_name = ?
+                    WHERE user_id = ?
+                ");
+                $stmt->execute([$host, $port, $username, $password, $encryption, $fromEmail, $fromName, $userId]);
+            } else {
+                $password = $updatePassword ? $newPassword : '';
+                $stmt = $db->prepare("
+                    INSERT INTO email_settings
+                        (user_id, smtp_host, smtp_port, smtp_username, smtp_password, smtp_encryption, smtp_from_email, smtp_from_name)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                ");
+                $stmt->execute([$userId, $host, $port, $username, $password, $encryption, $fromEmail, $fromName]);
+            }
+
+            return ['success' => true, 'message' => 'Email settings saved successfully.'];
+        } catch (Exception $e) {
+            return ['success' => false, 'error_code' => 'EMAIL_SETTINGS_UPDATE_FAILED', 'message' => 'Failed to save email settings: ' . $e->getMessage(), 'http_code' => 500];
+        }
+    }
+
     public function update($input)
     {
         try {

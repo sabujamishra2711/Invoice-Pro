@@ -40,6 +40,14 @@ function routeRequest($method, $route, $input)
         // Settings routes
         'settings.get' => ['GET', 'SettingsController@get'],
         'settings.update' => ['POST', 'SettingsController@update'],
+
+        // Email settings routes
+        'email.settings.get' => ['GET', 'SettingsController@getEmailSettings'],
+        'email.settings.update' => ['POST', 'SettingsController@updateEmailSettings'],
+
+        // Email send routes
+        'invoice.email.send' => ['POST', 'EmailController@send'],
+        'email.settings.test' => ['POST', 'EmailController@testConnection'],
     ];
 
     // Check if route exists

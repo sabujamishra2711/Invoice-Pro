@@ -1865,19 +1865,150 @@ class UIManager {
         const inv = this._currentPreviewInvoice;
         if (!inv) return;
 
-        const businessName = document.getElementById('setting-business-name')?.value || 'Our Company';
-        const clientEmail = inv.client_email || '';
-        const subject = encodeURIComponent(`Invoice ${inv.invoice_number} from ${businessName}`);
-        const body = encodeURIComponent(`Hello ${inv.client_name},
+        // Pre-populate modal fields
+        const bizName = document.getElementById('setting-business-name')?.value
+            || localStorage.getItem('business_name') || 'Our Company';
 
-Please find attached invoice ${inv.invoice_number} for ${inv.currency} ${inv.total_amount}.
+        document.getElementById('email-invoice-id').value = inv.id;
+        document.getElementById('email-to').value         = inv.client_email || inv.client_email_snapshot || '';
+        document.getElementById('email-to-name').value    = inv.client_name || '';
+        document.getElementById('email-subject').value    = `Invoice ${inv.invoice_number} from ${bizName}`;
 
-DueDate: ${inv.due_date}
+        const balance = parseFloat(inv.total_amount) - parseFloat(inv.paid_amount || 0);
+        const currency = inv.currency || 'INR';
+        const symbols  = { INR: '₹', USD: '$', EUR: '€', GBP: '£' };
+        const sym      = symbols[currency] || currency;
 
-Thank you for your business!`);
+        document.getElementById('email-message').value =
+            `Dear ${inv.client_name},\n\nPlease find attached invoice ${inv.invoice_number} for ${sym}${balance.toLocaleString('en-IN', {minimumFractionDigits: 2})}.\n\nDue date: ${inv.due_date}\n\nThank you for your business!\n\nBest regards,\n${bizName}`;
 
-        window.location.href = `mailto:${clientEmail}?subject=${subject}&body=${body}`;
-        this.showToast('info', 'Email Client', 'Opening your default mail app...');
+        // Hide SMTP warning initially
+        document.getElementById('email-smtp-warning').style.display = 'none';
+
+        this.openModal('send-email-modal');
+    }
+
+    async _doSendEmail() {
+        const invoiceId = document.getElementById('email-invoice-id').value;
+        const toEmail   = document.getElementById('email-to').value.trim();
+        const toName    = document.getElementById('email-to-name').value.trim();
+        const subject   = document.getElementById('email-subject').value.trim();
+        const message   = document.getElementById('email-message').value.trim();
+        const attachPdf = document.getElementById('email-attach-pdf').checked;
+
+        if (!toEmail || !subject) {
+            this.showToast('warning', 'Missing Fields', 'Please fill in the recipient email and subject.');
+            return;
+        }
+
+        const btn = document.getElementById('send-email-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+        try {
+            const result = await api.sendInvoiceEmail({
+                invoice_id: invoiceId,
+                to_email:   toEmail,
+                to_name:    toName,
+                subject:    subject,
+                message:    message,
+                attach_pdf: attachPdf
+            });
+
+            if (result.success) {
+                this.closeModal('send-email-modal');
+                this.showToast('success', 'Email Sent', result.message || `Invoice emailed to ${toEmail}.`);
+            } else {
+                if (result.error_code === 'SMTP_NOT_CONFIGURED') {
+                    document.getElementById('email-smtp-warning').style.display = 'block';
+                }
+                this.showToast('error', 'Send Failed', result.message || 'Could not send email.');
+            }
+        } catch (err) {
+            this.showToast('error', 'Error', 'Something went wrong: ' + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-paper-plane"></i> Send Invoice';
+        }
+    }
+
+    async loadEmailSettings() {
+        try {
+            const result = await api.getEmailSettings();
+            const s = result?.data?.email_settings || {};
+            const _v = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+            _v('smtp-host',       s.smtp_host);
+            _v('smtp-port',       s.smtp_port);
+            _v('smtp-username',   s.smtp_username);
+            _v('smtp-password',   s.smtp_password);
+            _v('smtp-from-name',  s.smtp_from_name);
+            _v('smtp-from-email', s.smtp_from_email);
+            const encEl = document.getElementById('smtp-encryption');
+            if (encEl && s.smtp_encryption) encEl.value = s.smtp_encryption;
+        } catch (e) {
+            // Non-fatal — SMTP just won't be pre-filled
+        }
+    }
+
+    async saveEmailSettings() {
+        const data = {
+            smtp_host:       document.getElementById('smtp-host')?.value.trim()       || '',
+            smtp_port:       parseInt(document.getElementById('smtp-port')?.value)     || 587,
+            smtp_username:   document.getElementById('smtp-username')?.value.trim()   || '',
+            smtp_password:   document.getElementById('smtp-password')?.value          || '',
+            smtp_encryption: document.getElementById('smtp-encryption')?.value        || 'tls',
+            smtp_from_email: document.getElementById('smtp-from-email')?.value.trim() || '',
+            smtp_from_name:  document.getElementById('smtp-from-name')?.value.trim()  || '',
+        };
+
+        const btn = document.getElementById('save-email-settings');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'; }
+
+        try {
+            const result = await api.updateEmailSettings(data);
+            if (result.success) {
+                this.showToast('success', 'Saved', 'Email settings saved successfully.');
+            } else {
+                this.showToast('error', 'Error', result.message || 'Could not save email settings.');
+            }
+        } catch (e) {
+            this.showToast('error', 'Error', e.message);
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Save Email Settings'; }
+        }
+    }
+
+    async testSmtpConnection() {
+        const data = {
+            smtp_host:       document.getElementById('smtp-host')?.value.trim()       || '',
+            smtp_port:       parseInt(document.getElementById('smtp-port')?.value)     || 587,
+            smtp_username:   document.getElementById('smtp-username')?.value.trim()   || '',
+            smtp_password:   document.getElementById('smtp-password')?.value          || '',
+            smtp_encryption: document.getElementById('smtp-encryption')?.value        || 'tls',
+            smtp_from_email: document.getElementById('smtp-from-email')?.value.trim() || '',
+            smtp_from_name:  document.getElementById('smtp-from-name')?.value.trim()  || '',
+        };
+
+        if (!data.smtp_host || !data.smtp_username || !data.smtp_password) {
+            this.showToast('warning', 'Missing Fields', 'Please fill in host, username and password first.');
+            return;
+        }
+
+        const btn = document.getElementById('test-smtp-btn');
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Testing...'; }
+
+        try {
+            const result = await api.testSmtpConnection(data);
+            if (result.success) {
+                this.showToast('success', 'Connection OK', 'SMTP connection test succeeded!');
+            } else {
+                this.showToast('error', 'Connection Failed', result.message || 'SMTP connection failed.');
+            }
+        } catch (e) {
+            this.showToast('error', 'Error', e.message);
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-plug"></i> Test Connection'; }
+        }
     }
 
     _downloadFile(blob, filename) {
