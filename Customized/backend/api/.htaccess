@@ -1,7 +1,0 @@
-# Enable CORS for all requests - handled dynamically by PHP
-# The PHP code will set the appropriate CORS headers based on the request origin
-
-# Handle preflight requests
-RewriteEngine On
-RewriteCond %{REQUEST_METHOD} OPTIONS
-RewriteRule ^(.*)$ - [R=200,L,E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
