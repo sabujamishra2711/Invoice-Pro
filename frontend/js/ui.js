@@ -2829,6 +2829,36 @@ class UIManager {
         }).join('');
     }
 
+    // ── Share Invoice Public Link ──
+    async shareInvoiceLink(invoiceId) {
+        const btn = document.getElementById('preview-share-btn');
+        const origHTML = btn ? btn.innerHTML : '';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating…'; }
+
+        try {
+            const result = await api.generatePublicLink(invoiceId);
+            if (!result?.success) throw new Error(result?.message || 'Could not generate link');
+
+            const url = result.data?.url;
+            if (!url) throw new Error('No URL returned');
+
+            // Copy to clipboard
+            try {
+                await navigator.clipboard.writeText(url);
+                this.showToast('success', 'Link Copied!', 'Public payment link copied to clipboard.');
+            } catch {
+                // Fallback: prompt
+                window.prompt('Copy this public payment link:', url);
+            }
+
+            if (btn) btn.innerHTML = '<i class="fas fa-check"></i> Copied!';
+            setTimeout(() => { if (btn) { btn.disabled = false; btn.innerHTML = origHTML; } }, 2500);
+        } catch (err) {
+            this.showToast('error', 'Error', err.message || 'Could not generate public link.');
+            if (btn) { btn.disabled = false; btn.innerHTML = origHTML; }
+        }
+    }
+
     // Update user info displayed in sidebar and topbar
     updateUserDisplay() {
         if (typeof authManager === 'undefined') return;

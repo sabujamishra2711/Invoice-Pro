@@ -21,17 +21,14 @@ class PublicInvoiceController
                     i.id, i.invoice_number, i.issue_date, i.due_date,
                     i.subtotal, i.tax_amount, i.total_amount, i.paid_amount,
                     i.currency, i.notes, i.status, i.public_token,
-                    i.client_name_snapshot   AS client_name,
+                    i.client_name_snapshot    AS client_name,
                     i.client_company_snapshot AS client_company,
-                    i.client_email_snapshot  AS client_email,
-                    i.business_name_snapshot AS business_name,
+                    i.client_email_snapshot   AS client_email,
+                    i.business_name_snapshot  AS business_name,
                     i.business_address_snapshot AS business_address,
-                    i.business_gst_snapshot  AS business_gst,
-                    i.business_logo_path_snapshot AS logo_path,
-                    s.razorpay_enabled, s.razorpay_key_id
+                    i.business_gst_snapshot   AS business_gst,
+                    i.business_logo_path_snapshot AS logo_path
                 FROM invoices i
-                JOIN users u ON i.user_id = u.id
-                LEFT JOIN settings s ON s.user_id = u.id
                 WHERE i.public_token = ? AND i.deleted_at IS NULL
             ");
             $stmt->execute([$token]);
@@ -62,15 +59,11 @@ class PublicInvoiceController
             $invoice['calculated_status'] = $status;
             $invoice['balance']           = max(0, $total - $paid);
 
-            // Use global Razorpay key from config if settings row doesn't override
-            $rzpKeyId = (!empty($invoice['razorpay_key_id']))
-                ? $invoice['razorpay_key_id']
-                : (defined('RAZORPAY_KEY_ID') ? RAZORPAY_KEY_ID : null);
+            // Use global Razorpay key from config
+            $rzpKeyId = defined('RAZORPAY_KEY_ID') ? RAZORPAY_KEY_ID : null;
 
-            // Only expose public key to client
-            unset($invoice['razorpay_key_id']);
-            $invoice['razorpay_key_id']    = $rzpKeyId;
-            $invoice['payment_enabled']    = !empty($rzpKeyId) && $invoice['balance'] > 0;
+            $invoice['razorpay_key_id'] = $rzpKeyId;
+            $invoice['payment_enabled'] = !empty($rzpKeyId) && $invoice['balance'] > 0;
 
             return [
                 'success' => true,

@@ -307,6 +307,15 @@ class ApiClient {
     async deleteExpenseCategory(id) {
         return await this.request(`expense.category.delete&id=${id}`, 'DELETE');
     }
+
+    // ── Public Invoice Link ──
+    async generatePublicLink(invoiceId) {
+        return await this.request(`public.invoice.token.generate&id=${invoiceId}`, 'POST');
+    }
+
+    async revokePublicLink(invoiceId) {
+        return await this.request(`public.invoice.token.revoke&id=${invoiceId}`, 'DELETE');
+    }
 }
 
 // Global API instance

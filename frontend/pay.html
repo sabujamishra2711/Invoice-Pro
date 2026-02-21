@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pay Invoice</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f1f5f9; color: #0f172a; min-height: 100vh; }
+
+  .page-wrapper { max-width: 720px; margin: 0 auto; padding: 32px 16px 64px; }
+
+  /* Header bar */
+  .pay-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+  .pay-brand { font-size: 1.1rem; font-weight: 700; color: #6366f1; letter-spacing: -0.5px; }
+  .status-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge-paid     { background: #d1fae5; color: #065f46; }
+  .badge-overdue  { background: #fee2e2; color: #991b1b; }
+  .badge-partial  { background: #fef3c7; color: #92400e; }
+  .badge-sent     { background: #dbeafe; color: #1e40af; }
+  .badge-draft    { background: #f1f5f9; color: #475569; }
+
+  /* Card */
+  .card { background: #fff; border-radius: 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.05); margin-bottom: 20px; overflow: hidden; }
+  .card-body { padding: 28px; }
+
+  /* Invoice header inside card */
+  .inv-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 28px; gap: 16px; }
+  .inv-logo { width: 64px; height: 64px; border-radius: 10px; object-fit: contain; border: 1px solid #e2e8f0; padding: 4px; }
+  .inv-logo-placeholder { width: 64px; height: 64px; border-radius: 10px; background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; color: #94a3b8; }
+  .inv-from h2 { font-size: 1.05rem; font-weight: 700; }
+  .inv-from p  { font-size: 0.82rem; color: #64748b; margin-top: 2px; line-height: 1.5; }
+  .inv-meta { text-align: right; }
+  .inv-number { font-size: 1.4rem; font-weight: 800; color: #6366f1; }
+  .inv-meta-row { font-size: 0.82rem; color: #64748b; margin-top: 4px; }
+  .inv-meta-row span { color: #0f172a; font-weight: 600; }
+
+  /* Parties */
+  .inv-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; padding: 20px 0; border-top: 1px solid #f1f5f9; border-bottom: 1px solid #f1f5f9; margin-bottom: 24px; }
+  .party-label { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 6px; }
+  .party-name { font-weight: 700; font-size: 0.95rem; }
+  .party-detail { font-size: 0.82rem; color: #64748b; margin-top: 2px; }
+
+  /* Items table */
+  table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+  thead th { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; padding: 10px 12px; background: #f8fafc; border-bottom: 2px solid #e2e8f0; }
+  tbody td { padding: 10px 12px; font-size: 0.88rem; border-bottom: 1px solid #f1f5f9; }
+  tbody tr:last-child td { border-bottom: none; }
+  .text-right { text-align: right; }
+  .fw600 { font-weight: 600; }
+
+  /* Totals */
+  .totals { display: flex; justify-content: flex-end; }
+  .totals-table { min-width: 260px; }
+  .totals-table td { padding: 5px 0; font-size: 0.88rem; }
+  .totals-table td:last-child { text-align: right; font-weight: 600; padding-left: 24px; }
+  .totals-table .total-row td { font-size: 1rem; font-weight: 800; border-top: 2px solid #e2e8f0; padding-top: 10px; }
+  .totals-table .balance-row td { color: #6366f1; font-size: 1.05rem; font-weight: 800; }
+
+  /* Payment history */
+  .section-title { font-size: 0.78rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 12px; }
+  .payment-row { display: flex; justify-content: space-between; align-items: center; padding: 9px 0; border-bottom: 1px solid #f1f5f9; font-size: 0.86rem; }
+  .payment-row:last-child { border-bottom: none; }
+  .payment-badge { font-size: 0.72rem; font-weight: 600; padding: 2px 8px; border-radius: 10px; background: #d1fae5; color: #065f46; }
+
+  /* Notes */
+  .notes-box { background: #f8fafc; border-radius: 8px; padding: 14px 16px; font-size: 0.85rem; color: #475569; line-height: 1.6; }
+
+  /* Pay button section */
+  .pay-section { text-align: center; padding: 28px; }
+  .pay-amount { font-size: 2rem; font-weight: 800; color: #0f172a; margin-bottom: 6px; }
+  .pay-label  { font-size: 0.85rem; color: #64748b; margin-bottom: 24px; }
+  .btn-pay { display: inline-flex; align-items: center; gap: 10px; background: #6366f1; color: #fff; border: none; border-radius: 12px; padding: 14px 36px; font-size: 1rem; font-weight: 700; cursor: pointer; transition: background .15s, transform .1s; box-shadow: 0 4px 14px rgba(99,102,241,.35); }
+  .btn-pay:hover  { background: #4f46e5; transform: translateY(-1px); }
+  .btn-pay:active { transform: translateY(0); }
+  .btn-pay:disabled { opacity: .6; cursor: not-allowed; transform: none; }
+  .rzp-secure { font-size: 0.75rem; color: #94a3b8; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+
+  /* Paid banner */
+  .paid-banner { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 20px; background: #d1fae5; border-radius: 12px; color: #065f46; font-weight: 700; font-size: 1rem; }
+  .paid-banner i { font-size: 1.4rem; }
+
+  /* States */
+  .loading-state, .error-state { text-align: center; padding: 80px 20px; color: #64748b; }
+  .error-state h2 { color: #0f172a; margin-bottom: 8px; }
+  .spinner { width: 40px; height: 40px; border: 3px solid #e2e8f0; border-top-color: #6366f1; border-radius: 50%; animation: spin .7s linear infinite; margin: 0 auto 16px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 540px) {
+    .inv-header { flex-direction: column; }
+    .inv-meta  { text-align: left; }
+    .inv-parties { grid-template-columns: 1fr; }
+    .pay-amount { font-size: 1.5rem; }
+  }
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+<div class="page-wrapper">
+  <div class="pay-header">
+    <div class="pay-brand"><i class="fas fa-file-invoice-dollar" style="margin-right:6px;"></i>InvoicePro</div>
+    <div id="status-badge"></div>
+  </div>
+
+  <div id="app">
+    <div class="loading-state">
+      <div class="spinner"></div>
+      <p>Loading invoice…</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const API = '/invoice-management/backend/api/index.php';
+  const token = new URLSearchParams(location.search).get('token');
+  const app   = document.getElementById('app');
+  const badgeEl = document.getElementById('status-badge');
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function esc(s) {
+    return String(s ?? '')
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+
+  function fmt(amount, currency) {
+    try {
+      return new Intl.NumberFormat('en-IN', { style: 'currency', currency: currency || 'INR', maximumFractionDigits: 2 }).format(amount);
+    } catch {
+      return (currency || '₹') + ' ' + parseFloat(amount).toFixed(2);
+    }
+  }
+
+  function fmtDate(d) {
+    if (!d) return '—';
+    const dt = new Date(d + 'T00:00:00');
+    return dt.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  }
+
+  function statusBadge(s) {
+    const map = {
+      paid: ['paid','Paid'], overdue: ['overdue','Overdue'],
+      partial: ['partial','Partially Paid'], sent: ['sent','Awaiting Payment'],
+      draft: ['draft','Draft']
+    };
+    const [cls, label] = map[s] || ['draft', s];
+    return `<span class="status-badge badge-${cls}"><i class="fas fa-circle" style="font-size:.45rem;"></i>${label}</span>`;
+  }
+
+  // ── Render ──────────────────────────────────────────────────────────────────
+  function render(data) {
+    const { invoice: inv, items, payments } = data;
+    const status  = inv.calculated_status || 'sent';
+    const balance = parseFloat(inv.balance) || 0;
+    const total   = parseFloat(inv.total_amount) || 0;
+    const paid    = parseFloat(inv.paid_amount)  || 0;
+    const tax     = parseFloat(inv.tax_amount)   || 0;
+    const sub     = parseFloat(inv.subtotal)     || 0;
+    const cur     = inv.currency || 'INR';
+
+    // Update header badge
+    badgeEl.innerHTML = statusBadge(status);
+
+    const logoHTML = inv.logo_path
+      ? `<img class="inv-logo" src="/invoice-management/${esc(inv.logo_path)}" alt="logo">`
+      : `<div class="inv-logo-placeholder"><i class="fas fa-building"></i></div>`;
+
+    const itemsHTML = items.map(it => {
+      const lineBase = parseFloat(it.quantity) * parseFloat(it.rate);
+      const lineTax  = lineBase * (parseFloat(it.tax_percent) || 0) / 100;
+      return `<tr>
+        <td>${esc(it.description)}</td>
+        <td class="text-right">${parseFloat(it.quantity)}</td>
+        <td class="text-right">${fmt(it.rate, cur)}</td>
+        <td class="text-right">${parseFloat(it.tax_percent || 0)}%</td>
+        <td class="text-right fw600">${fmt(lineBase + lineTax, cur)}</td>
+      </tr>`;
+    }).join('');
+
+    const paymentsHTML = payments.length
+      ? payments.map(p => `
+        <div class="payment-row">
+          <div>
+            <div style="font-weight:600;">${fmt(p.amount, cur)}</div>
+            <div style="color:#64748b;font-size:.8rem;">${fmtDate(p.payment_date)} &middot; ${esc(p.method || 'online')}</div>
+          </div>
+          <span class="payment-badge"><i class="fas fa-check" style="font-size:.65rem;margin-right:3px;"></i>Paid</span>
+        </div>`).join('')
+      : '<p style="color:#94a3b8;font-size:.85rem;">No payments recorded yet.</p>';
+
+    const notesHTML = inv.notes
+      ? `<div style="margin-top:20px;"><div class="section-title">Notes</div><div class="notes-box">${esc(inv.notes)}</div></div>`
+      : '';
+
+    const paySection = (() => {
+      if (status === 'paid') {
+        return `<div class="card"><div class="card-body"><div class="paid-banner"><i class="fas fa-check-circle"></i> This invoice has been paid in full. Thank you!</div></div></div>`;
+      }
+      if (!inv.payment_enabled) return '';
+      return `<div class="card">
+        <div class="pay-section">
+          <div class="pay-amount">${fmt(balance, cur)}</div>
+          <div class="pay-label">Amount due</div>
+          <button class="btn-pay" id="pay-btn" onclick="startPayment()">
+            <i class="fas fa-lock"></i> Pay Securely
+          </button>
+          <div class="rzp-secure"><i class="fas fa-shield-alt"></i> Secured by Razorpay &bull; 100% safe &amp; encrypted</div>
+        </div>
+      </div>`;
+    })();
+
+    app.innerHTML = `
+      <div class="card">
+        <div class="card-body">
+          <div class="inv-header">
+            <div style="display:flex;align-items:flex-start;gap:14px;">
+              ${logoHTML}
+              <div class="inv-from">
+                <h2>${esc(inv.business_name || 'Business')}</h2>
+                <p>${esc(inv.business_address || '')}</p>
+                ${inv.business_gst ? `<p>GST: ${esc(inv.business_gst)}</p>` : ''}
+              </div>
+            </div>
+            <div class="inv-meta">
+              <div class="inv-number">${esc(inv.invoice_number)}</div>
+              <div class="inv-meta-row">Issue Date: <span>${fmtDate(inv.issue_date)}</span></div>
+              <div class="inv-meta-row">Due Date: <span>${fmtDate(inv.due_date)}</span></div>
+            </div>
+          </div>
+
+          <div class="inv-parties">
+            <div>
+              <div class="party-label">From</div>
+              <div class="party-name">${esc(inv.business_name || '')}</div>
+            </div>
+            <div>
+              <div class="party-label">Bill To</div>
+              <div class="party-name">${esc(inv.client_name || '')}</div>
+              ${inv.client_company ? `<div class="party-detail">${esc(inv.client_company)}</div>` : ''}
+              ${inv.client_email   ? `<div class="party-detail">${esc(inv.client_email)}</div>`   : ''}
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th class="text-right">Qty</th>
+                <th class="text-right">Rate</th>
+                <th class="text-right">Tax</th>
+                <th class="text-right">Amount</th>
+              </tr>
+            </thead>
+            <tbody>${itemsHTML}</tbody>
+          </table>
+
+          <div class="totals">
+            <table class="totals-table">
+              <tr><td>Subtotal</td><td>${fmt(sub, cur)}</td></tr>
+              <tr><td>Tax</td><td>${fmt(tax, cur)}</td></tr>
+              <tr class="total-row"><td>Total</td><td>${fmt(total, cur)}</td></tr>
+              ${paid > 0 ? `<tr><td style="color:#10b981;">Paid</td><td style="color:#10b981;">-${fmt(paid, cur)}</td></tr>` : ''}
+              ${balance > 0 ? `<tr class="balance-row"><td>Balance Due</td><td>${fmt(balance, cur)}</td></tr>` : ''}
+            </table>
+          </div>
+
+          ${payments.length ? `<div style="margin-top:20px;"><div class="section-title">Payment History</div>${paymentsHTML}</div>` : ''}
+          ${notesHTML}
+        </div>
+      </div>
+      ${paySection}
+    `;
+  }
+
+  // ── Razorpay ────────────────────────────────────────────────────────────────
+  let _invoiceData = null;
+
+  window.startPayment = async function () {
+    const btn = document.getElementById('pay-btn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Please wait…'; }
+
+    try {
+      const res  = await fetch(`${API}?route=public.invoice.order&token=${encodeURIComponent(token)}`, { method: 'POST' });
+      const body = await res.json();
+
+      if (!body.success) {
+        alert(body.message || 'Could not initiate payment.');
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-lock"></i> Pay Securely'; }
+        return;
+      }
+
+      const { order_id, amount, currency, key_id, invoice_number } = body.data;
+
+      const options = {
+        key: key_id,
+        amount,
+        currency,
+        name: 'InvoicePro',
+        description: `Payment for ${invoice_number}`,
+        order_id,
+        theme: { color: '#6366f1' },
+        handler: async function (response) {
+          try {
+            const verifyRes  = await fetch(`${API}?route=public.invoice.pay&token=${encodeURIComponent(token)}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id:   response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature:  response.razorpay_signature,
+              })
+            });
+            const verifyBody = await verifyRes.json();
+
+            if (verifyBody.success) {
+              // Reload invoice to show updated status
+              load();
+            } else {
+              alert('Payment verification failed: ' + (verifyBody.message || 'Unknown error'));
+              if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-lock"></i> Pay Securely'; }
+            }
+          } catch (e) {
+            alert('Error verifying payment. Please contact support.');
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-lock"></i> Pay Securely'; }
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-lock"></i> Pay Securely'; }
+          }
+        }
+      };
+
+      const rzp = new Razorpay(options);
+      rzp.open();
+
+    } catch (e) {
+      alert('Network error. Please try again.');
+      if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-lock"></i> Pay Securely'; }
+    }
+  };
+
+  // ── Load ────────────────────────────────────────────────────────────────────
+  async function load() {
+    if (!token) {
+      app.innerHTML = `<div class="error-state"><h2>Invalid Link</h2><p>This link is missing a payment token.</p></div>`;
+      return;
+    }
+
+    app.innerHTML = `<div class="loading-state"><div class="spinner"></div><p>Loading invoice…</p></div>`;
+
+    try {
+      const res  = await fetch(`${API}?route=public.invoice.get&token=${encodeURIComponent(token)}`);
+      const body = await res.json();
+
+      if (!body.success) {
+        app.innerHTML = `<div class="error-state"><h2>Invoice Not Found</h2><p>${esc(body.message || 'This link may be invalid or expired.')}</p></div>`;
+        return;
+      }
+
+      _invoiceData = body.data;
+      document.title = `Invoice ${body.data.invoice.invoice_number} — Pay`;
+      render(body.data);
+
+    } catch (e) {
+      app.innerHTML = `<div class="error-state"><h2>Error</h2><p>Could not load invoice. Please try again.</p></div>`;
+    }
+  }
+
+  load();
+})();
+</script>
+</body>
+</html>
