@@ -21,7 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 header('Access-Control-Allow-Origin: ' . $origin);
 header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization, X-CSRF-Token, X-Requested-With');
-header('Content-Type: application/json');
+header('Access-Control-Expose-Headers: Content-Disposition');
+// Content-Type is set per-route; CSV export controllers set their own before exit()
 
 // Start session
 if (session_status() === PHP_SESSION_NONE) {

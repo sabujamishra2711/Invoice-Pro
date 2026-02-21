@@ -1574,42 +1574,49 @@ class UIManager {
     }
 
     // ── CSV Export ──
-    exportInvoicesCSV() {
+    async exportInvoicesCSV() {
         if (!this.invoicesData.length) {
             this.showToast('warning', 'No Data', 'No invoices to export.');
             return;
         }
-
-        const token = localStorage.getItem('auth_token') || '';
-        const url = `${API_BASE_URL}/index.php?route=invoice.export&token=${encodeURIComponent(token)}`;
-        this._triggerDownload(url);
-        this.showToast('success', 'Exported', 'Invoices CSV download started.');
+        await this._fetchAndDownloadCSV('invoice.export', `invoices_${new Date().toISOString().slice(0,10)}.csv`);
     }
 
-    exportPaymentsCSV() {
+    async exportPaymentsCSV() {
         if (!this.paymentsData.length) {
             this.showToast('warning', 'No Data', 'No payments to export.');
             return;
         }
-
-        const token = localStorage.getItem('auth_token') || '';
-        const url = `${API_BASE_URL}/index.php?route=payment.export&token=${encodeURIComponent(token)}`;
-        this._triggerDownload(url);
-        this.showToast('success', 'Exported', 'Payments CSV download started.');
+        await this._fetchAndDownloadCSV('payment.export', `payments_${new Date().toISOString().slice(0,10)}.csv`);
     }
 
-    _triggerDownload(url) {
-        // Use a hidden iframe to trigger file download without navigating the SPA
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = url;
-        document.body.appendChild(iframe);
-        // Clean up after download starts
-        setTimeout(() => {
-            if (document.body.contains(iframe)) {
-                document.body.removeChild(iframe);
-            }
-        }, 10000);
+    async _fetchAndDownloadCSV(route, fallbackFilename) {
+        try {
+            const token = localStorage.getItem('auth_token') || '';
+            const url = `${API_BASE_URL}/index.php?route=${route}`;
+            const response = await fetch(url, {
+                method: 'GET',
+                headers: {
+                    'Authorization': token ? `Bearer ${token}` : '',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+
+            if (!response.ok) throw new Error(`Server error ${response.status}`);
+
+            const blob = await response.blob();
+
+            // Try to get filename from Content-Disposition header
+            const disposition = response.headers.get('Content-Disposition') || '';
+            const match = disposition.match(/filename[^;=\n]*=["']?([^"';\n]+)/i);
+            const filename = match ? match[1].trim() : fallbackFilename;
+
+            this._downloadFile(blob, filename);
+            this.showToast('success', 'Exported', `${filename} downloaded.`);
+        } catch (e) {
+            console.error('CSV export failed:', e);
+            this.showToast('error', 'Export Failed', e.message || 'Could not download CSV.');
+        }
     }
 
     // ── Confirm Dialog ──
@@ -1768,7 +1775,7 @@ Thank you for your business!`);
         a.download = filename;
         a.setAttribute('download', filename);
 
-        console.warn(`[CSV DOWNLOAD DEBUG] Filename: ${filename}`);
+
 
         document.body.appendChild(a);
         a.click();
