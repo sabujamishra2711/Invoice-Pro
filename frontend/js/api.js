@@ -44,6 +44,8 @@ class ApiClient {
                 } catch {
                     errorData = { message: `Server error (${response.status})` };
                 }
+                // Structured errors (e.g. LIMIT_REACHED) — return the body so callers can inspect error_code
+                if (errorData?.error_code) return errorData;
                 throw new Error(errorData?.message || `API Error ${response.status}`);
             }
 

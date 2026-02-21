@@ -354,6 +354,11 @@ document.addEventListener('DOMContentLoaded', () => {
         uiManager.loadEmailSettings();
     });
 
+    // Load plan usage when the account tab is opened
+    document.querySelector('[data-tab="account-settings"]')?.addEventListener('click', () => {
+        uiManager.loadPlanUsage();
+    });
+
     // ── Send Email Modal — Send button ──
     document.getElementById('send-email-btn')?.addEventListener('click', () => {
         uiManager._doSendEmail();

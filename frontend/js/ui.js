@@ -93,7 +93,7 @@ class UIManager {
                     await Promise.all([this.loadPayments(), this.loadInvoices()]);
                     break;
                 case 'reports': await this.loadReports(); break;
-                case 'settings': await this.loadSettings(); this.initSettingsTabs(); break;
+                case 'settings': await this.loadSettings(); this.initSettingsTabs(); this.loadPlanUsage(); break;
             }
         } catch (err) {
             console.error('Error loading view data:', err);
@@ -518,6 +518,8 @@ class UIManager {
             if (result.success) {
                 this.showToast('success', 'Invoice Saved', 'Invoice has been saved successfully.');
                 this.showView('invoices');
+            } else if (result.error_code === 'LIMIT_REACHED') {
+                this.handleLimitReached(result);
             } else {
                 this.showToast('error', 'Error', result.message || 'Failed to save invoice.');
             }
@@ -568,6 +570,8 @@ class UIManager {
                 if (newInv?.id) {
                     this.previewInvoice(newInv.id);
                 }
+            } else if (result.error_code === 'LIMIT_REACHED') {
+                this.handleLimitReached(result);
             } else {
                 this.showToast('error', 'Error', result.message || 'Failed to duplicate invoice.');
             }

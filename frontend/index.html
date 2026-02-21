@@ -835,16 +835,64 @@
                                           placeholder="your@email.com" disabled>
                                   </div>
                               </div>
-                              <div class="form-group">
-                                  <label class="form-label">Theme</label>
-                                  <select class="form-control" id="setting-theme">
-                                      <option value="light">Light</option>
-                                      <option value="dark">Dark</option>
-                                  </select>
-                              </div>
-                              <button type="button" class="btn btn-primary" id="save-account-settings">
-                                  <i class="fas fa-check"></i> Save Account
-                              </button>
+                                <div class="form-group">
+                                    <label class="form-label">Theme</label>
+                                    <select class="form-control" id="setting-theme">
+                                        <option value="light">Light</option>
+                                        <option value="dark">Dark</option>
+                                    </select>
+                                </div>
+                                <button type="button" class="btn btn-primary" id="save-account-settings">
+                                    <i class="fas fa-check"></i> Save Account
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Plan & Usage Card -->
+                        <div class="card" style="margin-top:20px;">
+                            <div class="card-body">
+                                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                                    <div>
+                                        <div style="font-size:1rem;font-weight:700;margin-bottom:4px;">Your Plan</div>
+                                        <div style="font-size:0.82rem;color:var(--text-secondary);">Current usage against your plan limits</div>
+                                    </div>
+                                    <span id="plan-badge" style="display:inline-block;padding:4px 14px;border-radius:20px;font-size:0.78rem;font-weight:700;color:#fff;background:var(--primary);">Pro Plan</span>
+                                </div>
+
+                                <!-- Clients meter -->
+                                <div class="usage-meter-group">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                        <span style="font-size:0.85rem;font-weight:600;"><i class="fas fa-users" style="width:18px;color:var(--text-tertiary);margin-right:4px;"></i>Clients</span>
+                                        <span id="usage-clients-text" style="font-size:0.8rem;color:var(--text-secondary);">0 / 10</span>
+                                    </div>
+                                    <div class="usage-bar-track">
+                                        <div class="usage-bar-fill" id="usage-clients-bar" style="width:0%;background:var(--primary);"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Invoices meter -->
+                                <div class="usage-meter-group" style="margin-top:16px;">
+                                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                                        <span style="font-size:0.85rem;font-weight:600;"><i class="fas fa-file-invoice" style="width:18px;color:var(--text-tertiary);margin-right:4px;"></i>Invoices</span>
+                                        <span id="usage-invoices-text" style="font-size:0.8rem;color:var(--text-secondary);">0 / 25</span>
+                                    </div>
+                                    <div class="usage-bar-track">
+                                        <div class="usage-bar-fill" id="usage-invoices-bar" style="width:0%;background:var(--primary);"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Features list -->
+                                <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border-light);">
+                                    <div style="font-size:0.82rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">Plan Features</div>
+                                    <div id="plan-features-list" class="plan-features-list"></div>
+                                </div>
+
+                                <button class="btn btn-secondary" style="margin-top:20px;width:100%;" onclick="uiManager.showUpgradeModal()">
+                                    <i class="fas fa-crown" style="color:#f59e0b;margin-right:6px;"></i> View Upgrade Options
+                                </button>
+                            </div>
+                        </div>
+                        <!-- end plan card, don't close card-body again below -->
                           </div>
                       </div>
                   </div>
@@ -1105,6 +1153,62 @@
                 <button class="btn btn-primary" id="send-email-btn">
                     <i class="fas fa-paper-plane"></i> Send Invoice
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ Upgrade Plan Modal ═══════════ -->
+    <div class="modal-overlay" id="upgrade-modal">
+        <div class="modal-container" style="max-width:500px;">
+            <div class="modal-header" style="border-bottom:none;padding-bottom:0;">
+                <button class="modal-close" onclick="uiManager.closeModal('upgrade-modal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body" style="padding-top:8px;text-align:center;">
+                <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:28px;">
+                    <i class="fas fa-crown" style="color:#fff;"></i>
+                </div>
+                <h3 id="upgrade-modal-title" style="margin:0 0 10px;font-size:1.25rem;">Upgrade Your Plan</h3>
+                <p id="upgrade-modal-reason" style="color:var(--text-secondary);font-size:0.9rem;margin:0 0 24px;line-height:1.6;"></p>
+
+                <!-- Plan comparison cards -->
+                <div class="upgrade-plans-grid">
+                    <div class="upgrade-plan-card">
+                        <div class="upgrade-plan-name">Pro</div>
+                        <div class="upgrade-plan-limits">10 clients &middot; 25 invoices</div>
+                        <ul class="upgrade-plan-features">
+                            <li><i class="fas fa-check"></i> Basic Reports</li>
+                            <li><i class="fas fa-check"></i> Email Invoices</li>
+                            <li class="na"><i class="fas fa-times"></i> Custom Branding</li>
+                            <li class="na"><i class="fas fa-times"></i> Export Reports</li>
+                        </ul>
+                        <div class="upgrade-plan-badge current">Current</div>
+                    </div>
+                    <div class="upgrade-plan-card highlighted">
+                        <div class="upgrade-plan-name">Professional</div>
+                        <div class="upgrade-plan-limits">100 clients &middot; 500 invoices</div>
+                        <ul class="upgrade-plan-features">
+                            <li><i class="fas fa-check"></i> Advanced Reports</li>
+                            <li><i class="fas fa-check"></i> Export CSV/PDF</li>
+                            <li><i class="fas fa-check"></i> Custom Branding</li>
+                            <li><i class="fas fa-check"></i> Multi-Currency</li>
+                        </ul>
+                        <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="uiManager.showToast('info','Coming Soon','Plan upgrades will be available soon.')">Upgrade</button>
+                    </div>
+                    <div class="upgrade-plan-card">
+                        <div class="upgrade-plan-name">Enterprise</div>
+                        <div class="upgrade-plan-limits">Unlimited everything</div>
+                        <ul class="upgrade-plan-features">
+                            <li><i class="fas fa-check"></i> Team Collaboration</li>
+                            <li><i class="fas fa-check"></i> API Access</li>
+                            <li><i class="fas fa-check"></i> Priority Support</li>
+                            <li><i class="fas fa-check"></i> Bulk Import/Export</li>
+                        </ul>
+                        <button class="btn btn-secondary" style="width:100%;margin-top:8px;" onclick="uiManager.showToast('info','Coming Soon','Plan upgrades will be available soon.')">Contact Us</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer" style="justify-content:center;border-top:none;">
+                <button class="btn btn-secondary" onclick="uiManager.closeModal('upgrade-modal')">Maybe Later</button>
             </div>
         </div>
     </div>

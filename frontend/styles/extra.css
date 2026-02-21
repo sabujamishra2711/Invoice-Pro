@@ -126,3 +126,159 @@
     border-color: var(--primary);
     color: #fff;
 }
+
+/* ══════════════════════════════════════════
+   Plan / Usage / Upgrade Styles
+══════════════════════════════════════════ */
+
+/* Usage bar track + fill */
+.usage-bar-track {
+    height: 8px;
+    border-radius: 99px;
+    background: var(--bg-surface-hover, #f1f5f9);
+    overflow: hidden;
+}
+
+[data-theme="dark"] .usage-bar-track {
+    background: rgba(255,255,255,0.08);
+}
+
+.usage-bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.5s ease, background 0.3s ease;
+}
+
+/* Plan features list (in Settings > Account) */
+.plan-features-list {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.plan-feature-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    padding: 6px 10px;
+    border-radius: var(--radius-sm, 6px);
+    background: var(--bg-surface-hover, #f8fafc);
+}
+
+.plan-feature-item.available {
+    color: var(--success, #10b981);
+}
+
+.plan-feature-item.available i {
+    color: var(--success, #10b981);
+    font-size: 0.75rem;
+}
+
+.plan-feature-item.unavailable {
+    color: var(--text-tertiary, #94a3b8);
+}
+
+.plan-feature-item.unavailable i {
+    color: var(--text-tertiary, #94a3b8);
+    font-size: 0.75rem;
+}
+
+[data-theme="dark"] .plan-feature-item {
+    background: rgba(255,255,255,0.04);
+}
+
+/* Upgrade modal — plan comparison grid */
+.upgrade-plans-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    text-align: left;
+    margin-top: 4px;
+}
+
+.upgrade-plan-card {
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-md, 10px);
+    padding: 16px;
+    position: relative;
+    transition: border-color 150ms ease;
+}
+
+.upgrade-plan-card.highlighted {
+    border-color: var(--primary, #6366f1);
+    box-shadow: 0 0 0 3px rgba(99,102,241,0.1);
+}
+
+.upgrade-plan-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+
+.upgrade-plan-limits {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    margin-bottom: 12px;
+}
+
+.upgrade-plan-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.upgrade-plan-features li {
+    font-size: 0.78rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-secondary);
+}
+
+.upgrade-plan-features li i {
+    font-size: 0.68rem;
+    color: var(--success, #10b981);
+    flex-shrink: 0;
+}
+
+.upgrade-plan-features li.na {
+    opacity: 0.45;
+}
+
+.upgrade-plan-features li.na i {
+    color: var(--text-tertiary);
+}
+
+.upgrade-plan-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: 99px;
+    text-transform: uppercase;
+    letter-spacing: .5px;
+    display: inline-block;
+    margin-top: 8px;
+}
+
+.upgrade-plan-badge.current {
+    background: var(--bg-surface-hover);
+    color: var(--text-tertiary);
+    border: 1px solid var(--border-color);
+}
+
+[data-theme="dark"] .upgrade-plan-card {
+    border-color: rgba(255,255,255,0.1);
+}
+
+[data-theme="dark"] .upgrade-plan-card.highlighted {
+    border-color: var(--primary);
+}
+
+[data-theme="dark"] .upgrade-plan-badge.current {
+    background: rgba(255,255,255,0.06);
+    border-color: rgba(255,255,255,0.15);
+}
