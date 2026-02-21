@@ -1551,24 +1551,7 @@ select.form-control {
     }
 }
 
-/* ── Print Styles ── */
-@media print {
-
-    .sidebar,
-    .topbar,
-    .no-print {
-        display: none !important;
-    }
-
-    .main-content {
-        margin-left: 0 !important;
-    }
-
-    .card {
-        box-shadow: none;
-        border: 1px solid #ddd;
-    }
-}
+/* Print styles consolidated in extra.css */
 
 /* ── Utility Classes ── */
 .text-muted {

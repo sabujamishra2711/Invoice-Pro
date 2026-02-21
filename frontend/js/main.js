@@ -250,5 +250,95 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if (window.location.hash === '#settings') syncSettingsAppearanceUI();
 
+    // ── Save Invoice Settings (template + color) ──
+    document.getElementById('save-invoice-settings')?.addEventListener('click', () => {
+        const activeTpl = document.querySelector('.settings-tpl-btn.active');
+        const tpl = activeTpl ? parseInt(activeTpl.dataset.tpl) : 1;
+        const color = document.getElementById('settings-accent-picker')?.value || '#6366f1';
+        localStorage.setItem('inv_template', tpl);
+        localStorage.setItem('inv_accent_color', color);
+        uiManager.showToast('success', 'Saved', 'Invoice appearance saved as default.');
+    });
+
+    // ── Save Account Settings ──
+    document.getElementById('save-account-settings')?.addEventListener('click', () => {
+        const name = document.getElementById('setting-name')?.value.trim();
+        const theme = document.getElementById('setting-theme')?.value || 'light';
+
+        // Persist theme
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+        const themeBtn = document.getElementById('theme-toggle');
+        if (themeBtn) themeBtn.querySelector('i').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+
+        // Persist name into localStorage and update display
+        if (name) {
+            localStorage.setItem('user_display_name', name);
+            // Update auth user object in memory if possible
+            if (typeof authManager !== 'undefined') {
+                const user = authManager.getCurrentUser();
+                if (user) {
+                    user.name = name;
+                    // Re-save to localStorage so it survives refresh
+                    const key = Object.keys(localStorage).find(k =>
+                        k.startsWith('user_') && k !== 'user_display_name'
+                    );
+                    // Try to update the stored user JSON directly
+                    const storedUser = localStorage.getItem('current_user');
+                    if (storedUser) {
+                        try {
+                            const u = JSON.parse(storedUser);
+                            u.name = name;
+                            localStorage.setItem('current_user', JSON.stringify(u));
+                        } catch {}
+                    }
+                }
+            }
+            // Update sidebar/topbar display immediately
+            uiManager._setText('sidebar-username', name);
+            uiManager._setText('topbar-username', name);
+            const initials = name.trim().split(/\s+/).map(p => p[0]).join('').toUpperCase().slice(0, 2);
+            uiManager._setText('sidebar-avatar', initials);
+            uiManager._setText('topbar-avatar', initials);
+        }
+
+        // Rebuild charts if needed
+        if (uiManager.currentView === 'dashboard') uiManager.loadDashboard();
+        if (uiManager.currentView === 'reports') uiManager.loadReports();
+
+        uiManager.showToast('success', 'Saved', 'Account settings saved.');
+    });
+
+    // ── Logo Upload — save base64 to localStorage, show preview ──
+    document.getElementById('logo-upload')?.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (file.size > 2 * 1024 * 1024) {
+            uiManager.showToast('error', 'Too Large', 'Logo must be under 2 MB.');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const dataUrl = ev.target.result;
+            localStorage.setItem('business_logo', dataUrl);
+            // Show preview in settings
+            const preview = document.getElementById('logo-preview');
+            if (preview) {
+                preview.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:contain;border-radius:10px;">`;
+            }
+            uiManager.showToast('success', 'Logo Saved', 'Logo will appear on your invoices.');
+        };
+        reader.readAsDataURL(file);
+    });
+
+    // Restore logo preview on settings load
+    const savedLogo = localStorage.getItem('business_logo');
+    if (savedLogo) {
+        const preview = document.getElementById('logo-preview');
+        if (preview) {
+            preview.innerHTML = `<img src="${savedLogo}" style="width:100%;height:100%;object-fit:contain;border-radius:10px;">`;
+        }
+    }
+
     console.log('✅ InvoicePro initialized');
 });

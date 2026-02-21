@@ -45,91 +45,136 @@
 
 /* ══════════════════════════════════
    Print Overrides — SINGLE AUTHORITATIVE BLOCK
-   This overrides any earlier @media print rules from main.css
    ══════════════════════════════════ */
+
+/* Page setup: A4, no margins so the invoice fills the page */
+@page {
+    size: A4 portrait;
+    margin: 0;
+}
+
 @media print {
 
-    /* 1. Hide the entire page layout */
-    body>.sidebar,
-    body>.topbar,
-    body>.main-content,
-    body>.toast-container,
-    body>.loading-overlay {
+    /* 1. Hide everything except the invoice modal */
+    body > *:not(#invoice-preview-modal) {
         display: none !important;
     }
 
-    /* 2. Hide modal chrome (header/footer/close buttons) */
+    /* 2. Hide modal chrome — toolbar, header, footer, close, topbar, sidebar */
+    .inv-template-toolbar,
     .modal-header,
     .modal-footer,
     .modal-close,
-    .inv-template-toolbar {
+    .sidebar,
+    .topbar,
+    .toast-container,
+    .loading-overlay,
+    .sidebar-overlay {
         display: none !important;
     }
 
-    /* 3. Make the modal overlay act as a plain container */
+    /* 3. Modal overlay → plain full-page container */
+    #invoice-preview-modal,
     #invoice-preview-modal.active {
-        position: static !important;
+        position: fixed !important;
+        inset: 0 !important;
         display: block !important;
-        background: none !important;
+        background: #fff !important;
         overflow: visible !important;
-        z-index: auto !important;
-        width: 100% !important;
-        height: auto !important;
+        z-index: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
 
-    /* 4. Make the modal container a plain wrapper */
+    /* 4. Modal container → full width, no chrome */
     #invoice-preview-modal .modal-container {
         position: static !important;
-        max-width: none !important;
+        max-width: 100% !important;
         width: 100% !important;
         max-height: none !important;
         height: auto !important;
         box-shadow: none !important;
-        background: none !important;
+        background: transparent !important;
+        border-radius: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
         overflow: visible !important;
         transform: none !important;
     }
 
-    /* 5. Make the modal body a plain wrapper */
+    /* 5. Modal body → no padding, no background */
     #invoice-preview-modal .modal-body {
         padding: 0 !important;
-        background: none !important;
+        background: transparent !important;
         overflow: visible !important;
         max-height: none !important;
     }
 
-      /* 6. The actual invoice paper — show it full-page (all template classes) */
+    /* 6. Invoice paper — full page, compact, single page */
     .invoice-preview-paper,
-    .inv-tpl-1, .inv-tpl-2, .inv-tpl-3, .inv-tpl-4, .inv-tpl-5,
-    .inv-tpl-6, .inv-tpl-7, .inv-tpl-8, .inv-tpl-9, .inv-tpl-10 {
+    [class^="inv-tpl-"] {
         position: static !important;
         width: 100% !important;
+        max-width: 100% !important;
         height: auto !important;
+        min-height: 0 !important;
         margin: 0 !important;
+        padding: 28px 32px !important;
         box-shadow: none !important;
-        visibility: visible !important;
+        border-radius: 0 !important;
         overflow: visible !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
-        page-break-inside: avoid;
-        page-break-after: avoid;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
     }
 
-    /* 7. Ensure all text inside the invoice is visible */
-    .invoice-preview-paper, .inv-tpl-1, .inv-tpl-2, .inv-tpl-3, .inv-tpl-4, .inv-tpl-5,
-    .inv-tpl-6, .inv-tpl-7, .inv-tpl-8, .inv-tpl-9, .inv-tpl-10,
-    .invoice-preview-paper *, .inv-tpl-1 *, .inv-tpl-2 *, .inv-tpl-3 *, .inv-tpl-4 *, .inv-tpl-5 *,
-    .inv-tpl-6 *, .inv-tpl-7 *, .inv-tpl-8 *, .inv-tpl-9 *, .inv-tpl-10 * {
+    /* 7. Reduce font sizes slightly for compact single-page fit */
+    [class^="inv-tpl-"] {
+        font-size: 11px !important;
+    }
+
+    [class^="inv-tpl-"] h1 {
+        font-size: 1.3rem !important;
+    }
+
+    [class^="inv-tpl-"] th,
+    [class^="inv-tpl-"] td {
+        padding: 7px 10px !important;
+        font-size: 11px !important;
+    }
+
+    [class^="inv-tpl-"] .inv-party-name {
+        font-size: 13px !important;
+    }
+
+    [class^="inv-tpl-"] .inv-totals-table .row.grand {
+        font-size: 14px !important;
+    }
+
+    /* 8. Side-panel template: constrain sidebar width */
+    .inv-tpl-3 .inv-sidebar {
+        width: 160px !important;
+        min-width: 160px !important;
+        padding: 28px 16px !important;
+    }
+
+    /* 9. Ensure all content is visible */
+    [class^="inv-tpl-"],
+    [class^="inv-tpl-"] * {
         visibility: visible !important;
         print-color-adjust: exact !important;
     }
 
-    /* 8. Reset body for printing */
+    /* 10. Body reset */
     body {
         background: #fff !important;
         margin: 0 !important;
         padding: 0 !important;
+    }
+
+    /* 11. Force single page — hide overflow */
+    html, body {
+        overflow: hidden !important;
     }
 }
