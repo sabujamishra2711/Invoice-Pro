@@ -50,7 +50,7 @@ class RecurringManager {
                     <div class="empty-state-icon"><i class="fas fa-redo-alt"></i></div>
                     <div class="empty-state-title">No recurring invoices</div>
                     <div class="empty-state-text">Create a recurring invoice to auto-generate invoices on a schedule.</div>
-                    <button class="btn btn-primary" onclick="recurringManager.showForm()"><i class="fas fa-plus"></i> Create</button>
+                    <button class="btn btn-primary" onclick="recurringManager.showForm()"><i class="fas fa-plus"></i> New Recurring Invoice</button>
                 </div>
             </td></tr>`;
             return;

@@ -839,9 +839,28 @@ a:hover {
 }
 
 .btn-sm {
-    padding: 6px 14px;
+    padding: 6px 12px;
     font-size: 0.8rem;
+    gap: 6px;
+}
+
+.btn-xs {
+    padding: 2px 8px;
+    font-size: 0.75rem;
+    gap: 4px;
     border-radius: var(--radius-sm);
+}
+
+.btn i {
+    font-size: 0.9em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+}
+
+.btn-xs i {
+    font-size: 0.85em;
 }
 
 .btn-icon {
