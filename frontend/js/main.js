@@ -271,40 +271,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const themeBtn = document.getElementById('theme-toggle');
         if (themeBtn) themeBtn.querySelector('i').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
 
-        // Persist name into localStorage and update display
+        // Persist name — write to user_name (same key auth.js reads on init)
         if (name) {
-            localStorage.setItem('user_display_name', name);
-            // Update auth user object in memory if possible
+            localStorage.setItem('user_name', name);
+            // Also patch the in-memory authManager user object directly
             if (typeof authManager !== 'undefined') {
                 const user = authManager.getCurrentUser();
-                if (user) {
-                    user.name = name;
-                    // Re-save to localStorage so it survives refresh
-                    const key = Object.keys(localStorage).find(k =>
-                        k.startsWith('user_') && k !== 'user_display_name'
-                    );
-                    // Try to update the stored user JSON directly
-                    const storedUser = localStorage.getItem('current_user');
-                    if (storedUser) {
-                        try {
-                            const u = JSON.parse(storedUser);
-                            u.name = name;
-                            localStorage.setItem('current_user', JSON.stringify(u));
-                        } catch {}
-                    }
-                }
+                if (user) user.name = name;
             }
-            // Update sidebar/topbar display immediately
-            uiManager._setText('sidebar-username', name);
-            uiManager._setText('topbar-username', name);
-            const initials = name.trim().split(/\s+/).map(p => p[0]).join('').toUpperCase().slice(0, 2);
-            uiManager._setText('sidebar-avatar', initials);
-            uiManager._setText('topbar-avatar', initials);
         }
 
-        // Rebuild charts if needed
-        if (uiManager.currentView === 'dashboard') uiManager.loadDashboard();
-        if (uiManager.currentView === 'reports') uiManager.loadReports();
+        // Refresh sidebar/topbar via the central method
+        uiManager.updateUserDisplay();
 
         uiManager.showToast('success', 'Saved', 'Account settings saved.');
     });

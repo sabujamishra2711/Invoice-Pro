@@ -1832,9 +1832,17 @@ Thank you for your business!`);
         const user = authManager.getCurrentUser();
         if (!user) return;
 
-        const initials = authManager.getUserInitials();
-        const name = user.name || user.email?.split('@')[0] || 'User';
-        const email = user.email || '';
+        // user_name in localStorage is the source of truth (updated by account save)
+        const name = localStorage.getItem('user_name') || user.name || user.email?.split('@')[0] || 'User';
+        const email = localStorage.getItem('user_email') || user.email || '';
+
+        // Sync in-memory object so initials are correct
+        user.name = name;
+
+        const parts = name.trim().split(/\s+/);
+        const initials = parts.length >= 2
+            ? (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+            : name.substring(0, 2).toUpperCase();
 
         this._setText('sidebar-username', name);
         this._setText('sidebar-email', email);
