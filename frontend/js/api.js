@@ -189,6 +189,15 @@ class ApiClient {
     async logout() {
         return await this.request('auth.logout', 'POST');
     }
+
+    // ── Version / Plan ──
+    async getPlanLimits() {
+        return await this.request('version.limits');
+    }
+
+    async setPlan(plan) {
+        return await this.request('version.plan.set', 'POST', { plan });
+    }
 }
 
 // Global API instance

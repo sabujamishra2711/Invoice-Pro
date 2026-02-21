@@ -1,47 +1,66 @@
 <?php
-// Version Information Controller
-require_once __DIR__ . '/../version_config.php';
-require_once __DIR__ . '/../helpers/VersionCheck.php';
+require_once __DIR__ . '/../helpers/TierGuard.php';
 
 class VersionController
 {
-    public function getVersionInfo($input)
+    /**
+     * GET version.limits — returns plan, usage, limits, feature flags for the current user.
+     */
+    public function getLimits($input)
     {
         try {
-            $versionInfo = VersionCheck::getVersionInfo();
+            $userId = authenticateRequest();
+            $info   = TierGuard::getLimitsInfo($userId);
 
             return [
                 'success' => true,
-                'data' => $versionInfo
+                'data'    => $info
             ];
         } catch (Exception $e) {
             return [
-                'success' => false,
-                'error_code' => 'VERSION_INFO_FAILED',
-                'message' => 'Failed to fetch version information',
-                'http_code' => 500
+                'success'    => false,
+                'error_code' => 'LIMITS_FETCH_FAILED',
+                'message'    => 'Failed to fetch plan limits',
+                'http_code'  => 500
             ];
         }
     }
 
-    public function getFeatureAvailability($input)
+    /**
+     * POST version.plan.set — (admin/dev) change the current user's plan.
+     * Body: { "plan": "professional" }
+     */
+    public function setPlan($input)
     {
         try {
-            $featureAvailability = VersionCheck::getFeatureAvailability();
+            $userId = authenticateRequest();
+            $plan   = $input['plan'] ?? null;
 
+            $allowed = [VersionConfig::PLAN_PRO, VersionConfig::PLAN_PROFESSIONAL, VersionConfig::PLAN_ENTERPRISE];
+            if (!in_array($plan, $allowed)) {
+                return [
+                    'success'    => false,
+                    'error_code' => 'INVALID_PLAN',
+                    'message'    => 'Invalid plan. Must be one of: ' . implode(', ', $allowed),
+                    'http_code'  => 400
+                ];
+            }
+
+            $db = getDB();
+            $db->prepare("UPDATE users SET plan = ? WHERE id = ?")->execute([$plan, $userId]);
+
+            $info = TierGuard::getLimitsInfo($userId);
             return [
                 'success' => true,
-                'data' => [
-                    'features' => $featureAvailability,
-                    'version' => VersionConfig::getCurrentVersion()
-                ]
+                'message' => 'Plan updated to ' . VersionConfig::$planLabels[$plan],
+                'data'    => $info
             ];
         } catch (Exception $e) {
             return [
-                'success' => false,
-                'error_code' => 'FEATURE_AVAILABILITY_FAILED',
-                'message' => 'Failed to fetch feature availability',
-                'http_code' => 500
+                'success'    => false,
+                'error_code' => 'PLAN_UPDATE_FAILED',
+                'message'    => 'Failed to update plan',
+                'http_code'  => 500
             ];
         }
     }

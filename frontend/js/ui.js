@@ -710,6 +710,8 @@ class UIManager {
                 this.showToast('success', 'Client Saved', `${name} has been saved successfully.`);
                 this.closeModal('client-modal');
                 await this.loadClients();
+            } else if (result.error_code === 'LIMIT_REACHED') {
+                this.handleLimitReached(result);
             } else {
                 this.showToast('error', 'Error', result.message || 'Failed to save client.');
             }
@@ -2334,6 +2336,144 @@ class UIManager {
         const parts = name.trim().split(/\s+/);
         if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
         return name.substring(0, 2).toUpperCase();
+    }
+
+    // ── Plan / Tier Limits ──
+
+    /**
+     * Handle a LIMIT_REACHED API response. Shows a toast + opens the upgrade modal.
+     */
+    handleLimitReached(result) {
+        const resource = result.resource || 'item';
+        const limit    = result.limit    || 0;
+        const plan     = result.plan     || 'pro';
+        const planLabels = { pro: 'Pro', professional: 'Professional', enterprise: 'Enterprise' };
+        const planLabel  = planLabels[plan] || plan;
+
+        this.showToast('error', 'Limit Reached',
+            `You've used all ${limit} ${resource}s on the ${planLabel} plan.`);
+
+        this.showUpgradeModal(resource, result.current, limit, plan);
+    }
+
+    /**
+     * Show the upgrade modal with context about what limit was hit.
+     */
+    showUpgradeModal(resource = null, current = null, limit = null, currentPlan = null) {
+        const modal = document.getElementById('upgrade-modal');
+        if (!modal) return;
+
+        const titleEl   = document.getElementById('upgrade-modal-title');
+        const reasonEl  = document.getElementById('upgrade-modal-reason');
+
+        if (resource && limit !== null) {
+            const planLabels = { pro: 'Pro', professional: 'Professional', enterprise: 'Enterprise' };
+            const planLabel  = planLabels[currentPlan] || currentPlan || 'current';
+            if (titleEl)  titleEl.textContent  = `${resource.charAt(0).toUpperCase() + resource.slice(1)} Limit Reached`;
+            if (reasonEl) reasonEl.textContent =
+                `Your ${planLabel} plan allows up to ${limit} ${resource}s. You currently have ${current}. Upgrade your plan to add more.`;
+        } else {
+            if (titleEl)  titleEl.textContent  = 'Upgrade Your Plan';
+            if (reasonEl) reasonEl.textContent = 'Unlock higher limits and more features by upgrading.';
+        }
+
+        this.openModal('upgrade-modal');
+    }
+
+    /**
+     * Load plan limits from the API and render the usage meters in Settings > Account tab.
+     */
+    async loadPlanUsage() {
+        try {
+            const result = await api.getPlanLimits();
+            if (!result?.data) return;
+
+            const d           = result.data;
+            const plan        = d.plan        || 'pro';
+            const planLabel   = d.plan_label  || 'Pro';
+            const usage       = d.usage       || {};
+            const limits      = d.limits      || {};
+            const pct         = d.pct         || {};
+
+            // Plan badge
+            const badgeEl = document.getElementById('plan-badge');
+            if (badgeEl) {
+                const colors = { pro: 'var(--primary)', professional: 'var(--success)', enterprise: 'var(--warning)' };
+                badgeEl.textContent = planLabel + ' Plan';
+                badgeEl.style.background = colors[plan] || 'var(--primary)';
+            }
+
+            // Clients meter
+            this._renderUsageMeter(
+                'usage-clients-bar', 'usage-clients-text',
+                usage.clients, limits.max_clients, 'Clients', pct.clients
+            );
+
+            // Invoices meter
+            this._renderUsageMeter(
+                'usage-invoices-bar', 'usage-invoices-text',
+                usage.invoices, limits.max_invoices, 'Invoices', pct.invoices
+            );
+
+            // Feature flags
+            const features = d.features || {};
+            this._renderFeatureList('plan-features-list', features);
+
+        } catch (e) {
+            // Non-fatal — settings page still works
+        }
+    }
+
+    _renderUsageMeter(barId, textId, used, max, label, pct) {
+        const bar  = document.getElementById(barId);
+        const text = document.getElementById(textId);
+        if (!bar && !text) return;
+
+        const unlimited = (max === -1 || max === '-1');
+        const usedN     = parseInt(used) || 0;
+        const maxN      = parseInt(max)  || 0;
+        const pctN      = unlimited ? 0 : Math.min(parseInt(pct) || 0, 100);
+
+        const color = pctN >= 90 ? 'var(--danger)' : pctN >= 70 ? 'var(--warning)' : 'var(--primary)';
+
+        if (bar) {
+            bar.style.width      = unlimited ? '5%' : `${pctN}%`;
+            bar.style.background = color;
+        }
+        if (text) {
+            text.textContent = unlimited
+                ? `${usedN} / Unlimited`
+                : `${usedN} / ${maxN}`;
+            text.style.color = pctN >= 90 ? 'var(--danger)' : 'var(--text-secondary)';
+        }
+    }
+
+    _renderFeatureList(listId, features) {
+        const el = document.getElementById(listId);
+        if (!el) return;
+
+        const featureNames = {
+            export_reports:     'Export Reports (CSV/PDF)',
+            email_invoices:     'Email Invoices',
+            custom_branding:    'Custom Branding',
+            multi_currency:     'Multi-Currency',
+            recurring_invoices: 'Recurring Invoices',
+            api_access:         'API Access',
+            team_collaboration: 'Team Collaboration',
+            advanced_reports:   'Advanced Reports',
+            bulk_import_export: 'Bulk Import/Export',
+            priority_support:   'Priority Support',
+        };
+
+        el.innerHTML = Object.entries(featureNames).map(([key, label]) => {
+            const available = features[key] === true || features[key] === 1;
+            return `
+                <div class="plan-feature-item ${available ? 'available' : 'unavailable'}">
+                    <i class="fas ${available ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                    <span>${label}</span>
+                </div>
+            `;
+        }).join('');
     }
 
     // Update user info displayed in sidebar and topbar

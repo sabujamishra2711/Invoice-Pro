@@ -2,6 +2,7 @@
 // Client Management Controller
 
 require_once __DIR__ . '/../helpers/Validator.php';
+require_once __DIR__ . '/../helpers/TierGuard.php';
 
 class ClientController
 {
@@ -47,6 +48,22 @@ class ClientController
     {
         try {
             $userId = authenticateRequest();
+
+            // ── Tier limit check ──
+            try {
+                TierGuard::assertCanCreateClient($userId);
+            } catch (LimitException $e) {
+                return [
+                    'success'    => false,
+                    'error_code' => 'LIMIT_REACHED',
+                    'resource'   => $e->resource,
+                    'current'    => $e->current,
+                    'limit'      => $e->limit,
+                    'plan'       => $e->plan,
+                    'message'    => $e->getMessage(),
+                    'http_code'  => 403
+                ];
+            }
 
             // Validate input
             $validation = Validator::validateClientData($input);

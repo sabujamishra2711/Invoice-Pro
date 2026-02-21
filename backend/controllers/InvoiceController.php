@@ -3,6 +3,7 @@
 
 require_once __DIR__ . '/../helpers/Validator.php';
 require_once __DIR__ . '/../services/InvoiceService.php';
+require_once __DIR__ . '/../helpers/TierGuard.php';
 
 class InvoiceController
 {
@@ -85,6 +86,22 @@ class InvoiceController
     {
         try {
             $userId = authenticateRequest();
+
+            // ── Tier limit check ──
+            try {
+                TierGuard::assertCanCreateInvoice($userId);
+            } catch (LimitException $e) {
+                return [
+                    'success'    => false,
+                    'error_code' => 'LIMIT_REACHED',
+                    'resource'   => $e->resource,
+                    'current'    => $e->current,
+                    'limit'      => $e->limit,
+                    'plan'       => $e->plan,
+                    'message'    => $e->getMessage(),
+                    'http_code'  => 403
+                ];
+            }
 
             // Validate input
             $validation = Validator::validateInvoiceData($input);
@@ -211,6 +228,22 @@ class InvoiceController
                     'error_code' => 'VALIDATION_ERROR',
                     'message' => 'Invoice ID is required',
                     'http_code' => 400
+                ];
+            }
+
+            // ── Tier limit check ──
+            try {
+                TierGuard::assertCanCreateInvoice($userId);
+            } catch (LimitException $e) {
+                return [
+                    'success'    => false,
+                    'error_code' => 'LIMIT_REACHED',
+                    'resource'   => $e->resource,
+                    'current'    => $e->current,
+                    'limit'      => $e->limit,
+                    'plan'       => $e->plan,
+                    'message'    => $e->getMessage(),
+                    'http_code'  => 403
                 ];
             }
 

@@ -49,6 +49,10 @@ function routeRequest($method, $route, $input)
         // Email send routes
         'invoice.email.send' => ['POST', 'EmailController@send'],
         'email.settings.test' => ['POST', 'EmailController@testConnection'],
+
+        // Version / Plan routes
+        'version.limits'   => ['GET',  'VersionController@getLimits'],
+        'version.plan.set' => ['POST', 'VersionController@setPlan'],
     ];
 
     // Check if route exists
