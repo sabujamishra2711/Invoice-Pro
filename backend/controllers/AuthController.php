@@ -616,14 +616,15 @@ class AuthController
             $db->prepare("UPDATE users SET " . implode(', ', $updates) . " WHERE id = ?")->execute($params);
 
             // Return updated user
-            $stmt->execute([$userId]);
-            $updated = $stmt->fetch();
+            $stmt2 = $db->prepare("SELECT id, name, email, phone, auth_provider FROM users WHERE id = ? LIMIT 1");
+            $stmt2->execute([$userId]);
+            $updated = $stmt2->fetch();
 
             return [
                 'success' => true,
                 'data'    => [
                     'user'    => [
-                        'id'            => (int)$updated['id'] ?? $userId,
+                        'id'            => (int)($updated['id'] ?? $userId),
                         'name'          => $updated['name'],
                         'email'         => $updated['email'],
                         'phone'         => $updated['phone'],
