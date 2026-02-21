@@ -74,6 +74,9 @@ class ApiClient {
             'invoice.list': { success: true, data: { invoices: [] } },
             'payment.list': { success: true, data: { payments: [] } },
             'recurring.list': { success: true, data: { recurring_invoices: [] } },
+            'expense.list': { success: true, data: { expenses: [] } },
+            'expense.categories': { success: true, data: { categories: [] } },
+            'expense.summary': { success: true, data: { summary: { total_count: 0, total_amount: 0, billable_amount: 0, unbilled_amount: 0 }, by_category: [] } },
             'dashboard.stats': {
                 success: true,
                 data: {
@@ -252,6 +255,57 @@ class ApiClient {
 
     async generateRecurringInvoice(id) {
         return await this.request(`recurring.generate&id=${id}`, 'POST');
+    }
+
+    // ── Expenses ──
+    async getExpenses(filters = {}) {
+        let query = 'expense.list';
+        const params = [];
+        if (filters.category) params.push(`category=${encodeURIComponent(filters.category)}`);
+        if (filters.client_id) params.push(`client_id=${filters.client_id}`);
+        if (filters.date_from) params.push(`date_from=${filters.date_from}`);
+        if (filters.date_to) params.push(`date_to=${filters.date_to}`);
+        if (filters.is_billable) params.push('is_billable=1');
+        if (filters.unbilled) params.push('unbilled=1');
+        if (params.length) query += '&' + params.join('&');
+        return await this.request(query);
+    }
+
+    async getExpense(id) {
+        return await this.request(`expense.get&id=${id}`);
+    }
+
+    async createExpense(data) {
+        return await this.request('expense.create', 'POST', data);
+    }
+
+    async updateExpense(id, data) {
+        return await this.request(`expense.update&id=${id}`, 'PUT', data);
+    }
+
+    async deleteExpense(id) {
+        return await this.request(`expense.delete&id=${id}`, 'DELETE');
+    }
+
+    async getExpenseSummary(dateFrom = null, dateTo = null) {
+        let query = 'expense.summary';
+        const params = [];
+        if (dateFrom) params.push(`date_from=${dateFrom}`);
+        if (dateTo) params.push(`date_to=${dateTo}`);
+        if (params.length) query += '&' + params.join('&');
+        return await this.request(query);
+    }
+
+    async getExpenseCategories() {
+        return await this.request('expense.categories');
+    }
+
+    async createExpenseCategory(name, color = '#6366f1') {
+        return await this.request('expense.category.create', 'POST', { name, color });
+    }
+
+    async deleteExpenseCategory(id) {
+        return await this.request(`expense.category.delete&id=${id}`, 'DELETE');
     }
 }
 

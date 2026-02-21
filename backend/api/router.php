@@ -78,6 +78,19 @@ function routeRequest($method, $route, $input)
           'recurring.delete'  => ['DELETE', 'RecurringInvoiceController@delete'],
           'recurring.generate'=> ['POST',   'RecurringInvoiceController@generateNow'],
           'recurring.process' => ['POST',   'RecurringInvoiceController@processDue'],
+
+          // Expense routes
+          'expense.list'            => ['GET',    'ExpenseController@list'],
+          'expense.get'             => ['GET',    'ExpenseController@get'],
+          'expense.create'          => ['POST',   'ExpenseController@create'],
+          'expense.update'          => ['PUT',    'ExpenseController@update'],
+          'expense.delete'          => ['DELETE', 'ExpenseController@delete'],
+          'expense.receipt.upload'  => ['POST',   'ExpenseController@uploadReceipt'],
+          'expense.receipt.delete'  => ['DELETE', 'ExpenseController@deleteReceipt'],
+          'expense.summary'         => ['GET',    'ExpenseController@summary'],
+          'expense.categories'      => ['GET',    'ExpenseController@listCategories'],
+          'expense.category.create' => ['POST',   'ExpenseController@createCategory'],
+          'expense.category.delete' => ['DELETE', 'ExpenseController@deleteCategory'],
      ];
 
     // Check if route exists

@@ -62,6 +62,10 @@
                 <i class="fas fa-redo-alt"></i>
                 <span>Recurring</span>
             </a>
+            <a href="#expenses" class="nav-link" data-view="expenses">
+                <i class="fas fa-receipt"></i>
+                <span>Expenses</span>
+            </a>
 
             <div class="nav-section-title" style="margin-top:12px;">Analytics</div>
             <a href="#reports" class="nav-link" data-view="reports">
@@ -769,6 +773,198 @@
                                 <div class="invoice-total-row"><span class="invoice-total-label">Subtotal</span><span class="invoice-total-value" id="recurring-subtotal">0.00</span></div>
                                 <div class="invoice-total-row"><span class="invoice-total-label">Tax</span><span class="invoice-total-value" id="recurring-tax">0.00</span></div>
                                 <div class="invoice-total-row grand"><span class="invoice-total-label">Total</span><span class="invoice-total-value" id="recurring-total">0.00</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ════════ Expenses View ════════ -->
+            <div id="expenses-view" class="view">
+                <!-- List Section -->
+                <div id="expenses-list-section">
+                    <div class="page-header">
+                        <div>
+                            <h2 class="page-header-title">Expenses</h2>
+                            <p class="page-header-subtitle">Track and manage your business expenses</p>
+                        </div>
+                        <div style="display:flex;gap:10px;">
+                            <button class="btn btn-primary" id="create-expense-btn"><i class="fas fa-plus"></i> New Expense</button>
+                        </div>
+                    </div>
+
+                    <!-- Summary Cards -->
+                    <div class="stats-grid" id="expense-stats" style="margin-bottom:20px;">
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <div class="stat-card-icon rose"><i class="fas fa-receipt"></i></div>
+                            </div>
+                            <div class="stat-card-value" id="expense-total-amount">₹0</div>
+                            <div class="stat-card-label">Total Expenses</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <div class="stat-card-icon amber"><i class="fas fa-tags"></i></div>
+                            </div>
+                            <div class="stat-card-value" id="expense-count">0</div>
+                            <div class="stat-card-label">Expense Count</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <div class="stat-card-icon emerald"><i class="fas fa-file-invoice-dollar"></i></div>
+                            </div>
+                            <div class="stat-card-value" id="expense-billable">₹0</div>
+                            <div class="stat-card-label">Billable</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-card-header">
+                                <div class="stat-card-icon blue"><i class="fas fa-clock"></i></div>
+                            </div>
+                            <div class="stat-card-value" id="expense-unbilled">₹0</div>
+                            <div class="stat-card-label">Unbilled</div>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="card" style="margin-bottom:16px;">
+                        <div class="card-body" style="padding:12px 16px;">
+                            <div class="form-row" style="margin-bottom:0;align-items:flex-end;">
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-size:0.7rem;">Category</label>
+                                    <select class="form-control" id="expense-filter-category" style="min-width:140px;">
+                                        <option value="">All Categories</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-size:0.7rem;">From</label>
+                                    <input type="date" class="form-control" id="expense-filter-from">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-size:0.7rem;">To</label>
+                                    <input type="date" class="form-control" id="expense-filter-to">
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-size:0.7rem;visibility:hidden;">Filter</label>
+                                    <button class="btn btn-secondary btn-sm" id="expense-filter-btn"><i class="fas fa-filter"></i> Apply</button>
+                                </div>
+                                <div class="form-group" style="margin-bottom:0;">
+                                    <label class="form-label" style="font-size:0.7rem;visibility:hidden;">Clear</label>
+                                    <button class="btn btn-ghost btn-sm" id="expense-clear-filter-btn">Clear</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Table -->
+                    <div class="card">
+                        <div class="card-body" style="padding:0;">
+                            <table class="data-table" id="expense-table">
+                                <thead>
+                                    <tr>
+                                        <th>Date</th>
+                                        <th>Category</th>
+                                        <th>Description</th>
+                                        <th>Vendor</th>
+                                        <th>Amount</th>
+                                        <th>Billable</th>
+                                        <th style="width:100px;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expense-table-body">
+                                    <tr><td colspan="7">
+                                        <div class="empty-state">
+                                            <div class="empty-state-icon"><i class="fas fa-receipt"></i></div>
+                                            <div class="empty-state-title">No expenses yet</div>
+                                            <div class="empty-state-text">Start tracking your business expenses.</div>
+                                            <button class="btn btn-primary" onclick="expenseManager.showForm()"><i class="fas fa-plus"></i> Add Expense</button>
+                                        </div>
+                                    </td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Create/Edit Form -->
+                <div id="expense-form-section" style="display:none;">
+                    <div class="page-header" style="padding-bottom:0;">
+                        <div>
+                            <h3 class="page-header-title" id="expense-form-title" style="font-size:1.15rem;">New Expense</h3>
+                        </div>
+                        <div style="display:flex;gap:10px;">
+                            <button class="btn btn-secondary" id="expense-cancel-btn">Cancel</button>
+                            <button class="btn btn-primary" id="expense-save-btn"><i class="fas fa-check"></i> Save</button>
+                        </div>
+                    </div>
+
+                    <div class="card" style="margin-top:16px;">
+                        <div class="card-body">
+                            <input type="hidden" id="expense-id" value="">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label">Date *</label>
+                                    <input type="date" class="form-control" id="expense-date">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Category *</label>
+                                    <div style="display:flex;gap:8px;">
+                                        <select class="form-control" id="expense-category" style="flex:1;">
+                                            <option value="">Select category...</option>
+                                            <option value="Office Supplies">Office Supplies</option>
+                                            <option value="Travel">Travel</option>
+                                            <option value="Software">Software</option>
+                                            <option value="Hardware">Hardware</option>
+                                            <option value="Marketing">Marketing</option>
+                                            <option value="Utilities">Utilities</option>
+                                            <option value="Professional Services">Professional Services</option>
+                                            <option value="Meals & Entertainment">Meals & Entertainment</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Amount *</label>
+                                    <input type="number" class="form-control" id="expense-amount" step="0.01" min="0" placeholder="0.00">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group" style="flex:2;">
+                                    <label class="form-label">Vendor</label>
+                                    <input type="text" class="form-control" id="expense-vendor" placeholder="e.g. Amazon, Office Depot...">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Payment Method</label>
+                                    <select class="form-control" id="expense-payment-method">
+                                        <option value="cash">Cash</option>
+                                        <option value="credit_card">Credit Card</option>
+                                        <option value="debit_card">Debit Card</option>
+                                        <option value="bank_transfer">Bank Transfer</option>
+                                        <option value="check">Check</option>
+                                        <option value="other">Other</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Description</label>
+                                <input type="text" class="form-control" id="expense-description" placeholder="Brief description of the expense...">
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" style="display:flex;align-items:center;gap:8px;">
+                                        <input type="checkbox" id="expense-billable" style="width:auto;">
+                                        Billable to Client
+                                    </label>
+                                </div>
+                                <div class="form-group" id="expense-client-group" style="display:none;">
+                                    <label class="form-label">Client</label>
+                                    <select class="form-control" id="expense-client">
+                                        <option value="">Select client...</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Notes</label>
+                                <textarea class="form-control" id="expense-notes" rows="2" placeholder="Additional notes..."></textarea>
                             </div>
                         </div>
                     </div>
@@ -1636,6 +1832,7 @@
     <script src="js/api.js?v=2.0"></script>
     <script src="js/ui.js?v=2.0"></script>
     <script src="js/recurring.js?v=1.0"></script>
+    <script src="js/expense.js?v=1.0"></script>
     <script src="js/main.js?v=2.0"></script>
 </body>
 
