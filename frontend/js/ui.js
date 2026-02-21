@@ -946,8 +946,9 @@ class UIManager {
         try {
             const user = typeof authManager !== 'undefined' ? authManager.getCurrentUser() : null;
             if (user) {
-                this._setVal('setting-name', user.name || '');
-                this._setVal('setting-email', user.email || '');
+                // Always read from localStorage — these are the canonical saved values
+                this._setVal('setting-name', localStorage.getItem('user_name') || user.name || '');
+                this._setVal('setting-email', localStorage.getItem('user_email') || user.email || '');
             }
         } catch { }
         const savedTheme = localStorage.getItem('theme') || 'light';
@@ -2026,3 +2027,9 @@ Thank you for your business!`);
 
 // Global instance
 window.uiManager = new UIManager();
+
+// Apply theme and user display as soon as DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    window.uiManager.applyTheme();
+    window.uiManager.updateUserDisplay();
+});
