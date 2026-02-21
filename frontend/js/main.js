@@ -283,30 +283,65 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ── Save Account Settings ──
-    document.getElementById('save-account-settings')?.addEventListener('click', () => {
-        const name = document.getElementById('setting-name')?.value.trim();
-        const theme = document.getElementById('setting-theme')?.value || 'light';
+    document.getElementById('save-account-settings')?.addEventListener('click', async () => {
+        const name    = document.getElementById('setting-name')?.value.trim();
+        const email   = document.getElementById('setting-email')?.value.trim();
+        const phone   = document.getElementById('setting-phone')?.value.trim();
+        const theme   = document.getElementById('setting-theme')?.value || 'light';
+        const isGoogle = typeof authManager !== 'undefined' && authManager.isGoogleUser();
 
-        // Persist theme
+        const msgEl = document.getElementById('account-save-msg');
+        const btn   = document.getElementById('save-account-settings');
+
+        // Persist theme immediately
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
         const themeBtn = document.getElementById('theme-toggle');
         if (themeBtn) themeBtn.querySelector('i').className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
 
-        // Persist name — write to user_name (same key auth.js reads on init)
-        if (name) {
-            localStorage.setItem('user_name', name);
-            // Also patch the in-memory authManager user object directly
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'; }
+
+        try {
+            // Build payload — email excluded for Google users
+            const payload = { name, phone };
+            if (!isGoogle && email) payload.email = email;
+
+            // Call backend profile update
             if (typeof authManager !== 'undefined') {
-                const user = authManager.getCurrentUser();
-                if (user) user.name = name;
+                const result = await authManager.updateProfile(payload);
+                if (!result.success) throw new Error(result.error || 'Could not save profile');
+            } else {
+                // Fallback: just update localStorage
+                if (name) localStorage.setItem('user_name', name);
+                if (phone) localStorage.setItem('user_phone', phone);
+                if (!isGoogle && email) localStorage.setItem('user_email', email);
             }
+
+            uiManager.updateUserDisplay();
+
+            if (msgEl) {
+                msgEl.style.display = 'block';
+                msgEl.style.background = 'rgba(16,185,129,0.1)';
+                msgEl.style.border = '1px solid rgba(16,185,129,0.2)';
+                msgEl.style.color = 'var(--success)';
+                msgEl.innerHTML = '<i class="fas fa-check-circle" style="margin-right:6px;"></i>Profile saved successfully.';
+                setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+            } else {
+                uiManager.showToast('success', 'Saved', 'Profile updated successfully.');
+            }
+        } catch (err) {
+            if (msgEl) {
+                msgEl.style.display = 'block';
+                msgEl.style.background = 'rgba(239,68,68,0.08)';
+                msgEl.style.border = '1px solid rgba(239,68,68,0.15)';
+                msgEl.style.color = 'var(--danger)';
+                msgEl.innerHTML = `<i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>${err.message}`;
+            } else {
+                uiManager.showToast('error', 'Error', err.message);
+            }
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Save Profile'; }
         }
-
-        // Refresh sidebar/topbar via the central method
-        uiManager.updateUserDisplay();
-
-        uiManager.showToast('success', 'Saved', 'Account settings saved.');
     });
 
     // ── Logo Upload — save base64 to localStorage, show preview ──
@@ -359,6 +394,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Load plan usage when the account tab is opened
     document.querySelector('[data-tab="account-settings"]')?.addEventListener('click', () => {
         uiManager.loadPlanUsage();
+        uiManager.loadSettings(); // re-populate account fields + lock state
     });
 
     // ── Send Email Modal — Send button ──
@@ -366,3 +402,43 @@ document.addEventListener('DOMContentLoaded', () => {
         uiManager._doSendEmail();
     });
 });
+
+// ── Change Password (called from inline onclick in index.html) ──
+async function handleChangePassword() {
+    const currentPw = document.getElementById('current-password')?.value;
+    const newPw     = document.getElementById('new-password')?.value;
+    const confirmPw = document.getElementById('confirm-password')?.value;
+    const msgEl     = document.getElementById('password-change-msg');
+    const btn       = document.getElementById('change-password-btn');
+
+    function showMsg(text, ok) {
+        if (!msgEl) { uiManager.showToast(ok ? 'success' : 'error', ok ? 'Done' : 'Error', text); return; }
+        msgEl.style.display = 'block';
+        msgEl.style.background = ok ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.08)';
+        msgEl.style.border     = ok ? '1px solid rgba(16,185,129,0.2)' : '1px solid rgba(239,68,68,0.15)';
+        msgEl.style.color      = ok ? 'var(--success)' : 'var(--danger)';
+        msgEl.innerHTML = `<i class="fas ${ok ? 'fa-check-circle' : 'fa-exclamation-circle'}" style="margin-right:6px;"></i>${text}`;
+        if (ok) setTimeout(() => { msgEl.style.display = 'none'; }, 4000);
+    }
+
+    if (!currentPw || !newPw || !confirmPw) { showMsg('All password fields are required.', false); return; }
+    if (newPw !== confirmPw)                { showMsg('New passwords do not match.', false); return; }
+    if (newPw.length < 8)                  { showMsg('Password must be at least 8 characters.', false); return; }
+    if (!/[A-Z]/.test(newPw))              { showMsg('Password must include an uppercase letter.', false); return; }
+    if (!/[0-9]/.test(newPw))              { showMsg('Password must include a number.', false); return; }
+
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Changing...'; }
+    try {
+        const result = await authManager.changePassword(currentPw, newPw);
+        if (!result.success) throw new Error(result.error || 'Password change failed');
+        showMsg('Password changed successfully!', true);
+        // Clear fields
+        ['current-password','new-password','confirm-password'].forEach(id => {
+            const el = document.getElementById(id); if (el) el.value = '';
+        });
+    } catch (err) {
+        showMsg(err.message, false);
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-key"></i> Change Password'; }
+    }
+}

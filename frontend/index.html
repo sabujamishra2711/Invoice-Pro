@@ -923,8 +923,15 @@
 
                   <!-- Account Settings Tab -->
                   <div class="tab-panel" id="tab-account-settings">
+                      <!-- Profile Card -->
                       <div class="card">
                           <div class="card-body">
+                              <!-- Google-user badge (hidden for email users) -->
+                              <div id="google-auth-badge" style="display:none;align-items:center;gap:10px;padding:10px 14px;background:rgba(66,133,244,0.08);border:1px solid rgba(66,133,244,0.2);border-radius:10px;margin-bottom:20px;">
+                                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" style="width:18px;height:18px;" alt="Google">
+                                  <span style="font-size:0.85rem;color:var(--text-secondary);">Signed in with Google &mdash; email cannot be changed.</span>
+                              </div>
+
                               <div class="form-row">
                                   <div class="form-group">
                                       <label class="form-label">Full Name</label>
@@ -932,22 +939,57 @@
                                   </div>
                                   <div class="form-group">
                                       <label class="form-label">Email</label>
-                                      <input type="email" class="form-control" id="setting-email"
-                                          placeholder="your@email.com" disabled>
+                                      <input type="email" class="form-control" id="setting-email" placeholder="your@email.com">
+                                      <small id="setting-email-note" style="display:none;font-size:0.76rem;color:var(--text-tertiary);margin-top:4px;display:block;">
+                                          <i class="fas fa-lock" style="margin-right:3px;"></i>Locked — Google accounts cannot change email.
+                                      </small>
                                   </div>
                               </div>
-                                <div class="form-group">
-                                    <label class="form-label">Theme</label>
-                                    <select class="form-control" id="setting-theme">
-                                        <option value="light">Light</option>
-                                        <option value="dark">Dark</option>
-                                    </select>
-                                </div>
-                                <button type="button" class="btn btn-primary" id="save-account-settings">
-                                    <i class="fas fa-check"></i> Save Account
-                                </button>
-                            </div>
-                        </div>
+                              <div class="form-row">
+                                  <div class="form-group">
+                                      <label class="form-label">Phone <span style="font-weight:400;color:var(--text-tertiary);">(optional)</span></label>
+                                      <input type="tel" class="form-control" id="setting-phone" placeholder="+91 98765 43210">
+                                  </div>
+                                  <div class="form-group">
+                                      <label class="form-label">Theme</label>
+                                      <select class="form-control" id="setting-theme">
+                                          <option value="light">Light</option>
+                                          <option value="dark">Dark</option>
+                                      </select>
+                                  </div>
+                              </div>
+                              <button type="button" class="btn btn-primary" id="save-account-settings">
+                                  <i class="fas fa-check"></i> Save Profile
+                              </button>
+                              <div id="account-save-msg" style="display:none;margin-top:12px;padding:10px 14px;border-radius:10px;font-size:0.85rem;"></div>
+                          </div>
+                      </div>
+
+                      <!-- Change Password Card (hidden for Google users) -->
+                      <div class="card" id="change-password-card" style="margin-top:20px;">
+                          <div class="card-body">
+                              <div style="font-size:1rem;font-weight:700;margin-bottom:4px;">Change Password</div>
+                              <div style="font-size:0.82rem;color:var(--text-secondary);margin-bottom:20px;">Choose a strong password with at least 8 characters, one uppercase letter, and one number.</div>
+                              <div class="form-row">
+                                  <div class="form-group">
+                                      <label class="form-label">Current Password</label>
+                                      <input type="password" class="form-control" id="current-password" placeholder="Current password" autocomplete="current-password">
+                                  </div>
+                                  <div class="form-group">
+                                      <label class="form-label">New Password</label>
+                                      <input type="password" class="form-control" id="new-password" placeholder="Min 8 chars, 1 uppercase, 1 number" autocomplete="new-password">
+                                  </div>
+                              </div>
+                              <div class="form-group" style="max-width:320px;">
+                                  <label class="form-label">Confirm New Password</label>
+                                  <input type="password" class="form-control" id="confirm-password" placeholder="Repeat new password" autocomplete="new-password">
+                              </div>
+                              <button type="button" class="btn btn-primary" id="change-password-btn" onclick="handleChangePassword()">
+                                  <i class="fas fa-key"></i> Change Password
+                              </button>
+                              <div id="password-change-msg" style="display:none;margin-top:12px;padding:10px 14px;border-radius:10px;font-size:0.85rem;"></div>
+                          </div>
+                      </div>
 
                         <!-- Plan & Usage Card -->
                         <div class="card" style="margin-top:20px;">

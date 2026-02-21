@@ -1176,13 +1176,32 @@ class UIManager {
 
         // ── Populate Account tab ──
         try {
-            const user = typeof authManager !== 'undefined' ? authManager.getCurrentUser() : null;
+            const user       = typeof authManager !== 'undefined' ? authManager.getCurrentUser() : null;
+            const isGoogle   = typeof authManager !== 'undefined' && authManager.isGoogleUser();
             if (user) {
-                // Always read from localStorage — these are the canonical saved values
-                this._setVal('setting-name', localStorage.getItem('user_name') || user.name || '');
+                this._setVal('setting-name',  localStorage.getItem('user_name')  || user.name  || '');
                 this._setVal('setting-email', localStorage.getItem('user_email') || user.email || '');
+                this._setVal('setting-phone', localStorage.getItem('user_phone') || user.phone || '');
             }
-        } catch { }
+
+            // Lock email + show badge for Google users
+            const emailInput = document.getElementById('setting-email');
+            const emailNote  = document.getElementById('setting-email-note');
+            const googleBadge= document.getElementById('google-auth-badge');
+            const pwCard     = document.getElementById('change-password-card');
+
+            if (isGoogle) {
+                if (emailInput)  { emailInput.disabled = true; emailInput.style.opacity = '0.55'; emailInput.style.cursor = 'not-allowed'; }
+                if (emailNote)   { emailNote.style.display = 'block'; }
+                if (googleBadge) { googleBadge.style.display = 'flex'; }
+                if (pwCard)      { pwCard.style.display = 'none'; }
+            } else {
+                if (emailInput)  { emailInput.disabled = false; emailInput.style.opacity = ''; emailInput.style.cursor = ''; }
+                if (emailNote)   { emailNote.style.display = 'none'; }
+                if (googleBadge) { googleBadge.style.display = 'none'; }
+                if (pwCard)      { pwCard.style.display = ''; }
+            }
+        } catch (e) { console.warn('Account tab populate error:', e); }
         const savedTheme = localStorage.getItem('theme') || 'light';
         this._setVal('setting-theme', savedTheme);
 
