@@ -135,19 +135,22 @@ class RazorpayController
                     'name'          => 'Professional',
                     'price_paise'   => 99900,
                     'price_display' => '₹999/mo',
+                    'billing'       => 'monthly',
                     'max_clients'   => 50,
                     'max_invoices'  => 100,
                 ],
                 'enterprise' => [
-                    'name'              => 'Enterprise',
-                    'base_price_paise'  => 299900,
-                    'base_display'      => '₹2,999',
-                    'per_client_paise'  => 5000,
-                    'per_client_display'=> '₹50',
-                    'per_invoice_paise' => 2000,
+                    'name'               => 'Enterprise',
+                    'base_price_paise'   => 299900,
+                    'base_display'       => '₹2,999',
+                    'billing'            => 'annual',
+                    'billing_label'      => '/year',
+                    'per_client_paise'   => 5000,
+                    'per_client_display' => '₹50',
+                    'per_invoice_paise'  => 2000,
                     'per_invoice_display'=> '₹20',
-                    'base_clients'      => 200,
-                    'base_invoices'     => 500,
+                    'base_clients'       => 200,
+                    'base_invoices'      => 500,
                 ],
             ]
         ];
@@ -175,13 +178,18 @@ class RazorpayController
             default        => 20,
         };
 
+        // Enterprise is annual — set expiry to exactly 1 year from now.
+        // Professional is monthly — no expiry tracked (unlimited until cancelled).
+        $expiresAt = ($plan === 'enterprise') ? date('Y-m-d H:i:s', strtotime('+1 year')) : null;
+
         $db = getDB();
         $db->prepare("
-            INSERT INTO plan_subscriptions (user_id, plan, max_clients, max_invoices)
-            VALUES (:uid,:plan,:mc,:mi)
+            INSERT INTO plan_subscriptions (user_id, plan, max_clients, max_invoices, expires_at)
+            VALUES (:uid,:plan,:mc,:mi,:exp)
             ON DUPLICATE KEY UPDATE plan=VALUES(plan), max_clients=VALUES(max_clients),
-                                    max_invoices=VALUES(max_invoices), activated_at=CURRENT_TIMESTAMP
-        ")->execute([':uid'=>$userId,':plan'=>$plan,':mc'=>$maxClients,':mi'=>$maxInvoices]);
+                                    max_invoices=VALUES(max_invoices), expires_at=VALUES(expires_at),
+                                    activated_at=CURRENT_TIMESTAMP
+        ")->execute([':uid'=>$userId,':plan'=>$plan,':mc'=>$maxClients,':mi'=>$maxInvoices,':exp'=>$expiresAt]);
 
         $db->prepare("UPDATE users SET plan=:plan WHERE id=:uid")->execute([':plan'=>$plan,':uid'=>$userId]);
     }

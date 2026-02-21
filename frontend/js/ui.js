@@ -2589,12 +2589,18 @@ class UIManager {
             const result = await api.getPlanLimits();
             if (!result?.data) return;
 
-            const d           = result.data;
-            const plan        = d.plan        || 'pro';
-            const planLabel   = d.plan_label  || 'Pro';
-            const usage       = d.usage       || {};
-            const limits      = d.limits      || {};
-            const pct         = d.pct         || {};
+            const d         = result.data;
+            const plan      = d.plan       || 'pro';
+            const planLabel = d.plan_label || 'Pro';
+
+            // Support both flat shape (from backend) and nested shape
+            const usedClients  = d.used_clients  ?? d.usage?.clients  ?? 0;
+            const usedInvoices = d.used_invoices ?? d.usage?.invoices ?? 0;
+            const maxClients   = d.max_clients   ?? d.limits?.max_clients  ?? 10;
+            const maxInvoices  = d.max_invoices  ?? d.limits?.max_invoices ?? 20;
+
+            const pctC = maxClients  === -1 ? 0 : Math.min(Math.round((usedClients  / maxClients)  * 100), 100);
+            const pctI = maxInvoices === -1 ? 0 : Math.min(Math.round((usedInvoices / maxInvoices) * 100), 100);
 
             // Plan badge
             const badgeEl = document.getElementById('plan-badge');
@@ -2604,16 +2610,34 @@ class UIManager {
                 badgeEl.style.background = colors[plan] || 'var(--primary)';
             }
 
+            // Renewal date (enterprise only)
+            let renewsEl = document.getElementById('plan-renews-row');
+            if (plan === 'enterprise' && d.renews_on) {
+                if (!renewsEl) {
+                    // Insert below badge
+                    const badge = document.getElementById('plan-badge');
+                    if (badge && badge.parentNode) {
+                        renewsEl = document.createElement('div');
+                        renewsEl.id = 'plan-renews-row';
+                        renewsEl.style.cssText = 'font-size:0.8rem;color:var(--text-secondary);margin-top:6px;';
+                        badge.parentNode.insertBefore(renewsEl, badge.nextSibling);
+                    }
+                }
+                if (renewsEl) renewsEl.innerHTML = `<i class="fas fa-calendar-alt" style="margin-right:4px;color:var(--warning);"></i>Renews <strong>${this.escapeHtml(d.renews_on)}</strong>`;
+            } else if (renewsEl) {
+                renewsEl.remove();
+            }
+
             // Clients meter
             this._renderUsageMeter(
                 'usage-clients-bar', 'usage-clients-text',
-                usage.clients, limits.max_clients, 'Clients', pct.clients
+                usedClients, maxClients, 'Clients', pctC
             );
 
             // Invoices meter
             this._renderUsageMeter(
                 'usage-invoices-bar', 'usage-invoices-text',
-                usage.invoices, limits.max_invoices, 'Invoices', pct.invoices
+                usedInvoices, maxInvoices, 'Invoices', pctI
             );
 
             // Feature flags

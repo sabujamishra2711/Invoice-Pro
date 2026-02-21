@@ -55,7 +55,7 @@ class TierGuard
         $config = self::config();
         $planCfg = $config[$plan] ?? $config['pro'];
 
-        return [
+        $info = [
             'plan'         => $plan,
             'plan_label'   => $planCfg['label'],
             'max_clients'  => (int)$sub['max_clients'],
@@ -63,7 +63,15 @@ class TierGuard
             'used_clients' => self::countClients($userId),
             'used_invoices'=> self::countInvoices($userId),
             'features'     => $planCfg['features'],
+            'expires_at'   => $sub['expires_at'] ?? null,
         ];
+
+        // Add human-readable renewal date for enterprise
+        if ($plan === 'enterprise' && !empty($sub['expires_at'])) {
+            $info['renews_on'] = date('j M Y', strtotime($sub['expires_at']));
+        }
+
+        return $info;
     }
 
     // ── private helpers ───────────────────────────────────────────────────────
@@ -71,7 +79,7 @@ class TierGuard
     private static function getSub(int $userId): array
     {
         $db   = getDB();
-        $stmt = $db->prepare("SELECT plan, max_clients, max_invoices FROM plan_subscriptions WHERE user_id=:uid");
+        $stmt = $db->prepare("SELECT plan, max_clients, max_invoices, expires_at FROM plan_subscriptions WHERE user_id=:uid");
         $stmt->execute([':uid' => $userId]);
         $row  = $stmt->fetch();
 
@@ -87,8 +95,25 @@ class TierGuard
                 INSERT IGNORE INTO plan_subscriptions (user_id, plan, max_clients, max_invoices)
                 VALUES (:uid,:plan,:mc,:mi)
             ")->execute([':uid'=>$userId,':plan'=>$plan,':mc'=>$pcfg['max_clients'],':mi'=>$pcfg['max_invoices']]);
-            return ['plan'=>$plan,'max_clients'=>$pcfg['max_clients'],'max_invoices'=>$pcfg['max_invoices']];
+            return ['plan'=>$plan,'max_clients'=>$pcfg['max_clients'],'max_invoices'=>$pcfg['max_invoices'],'expires_at'=>null];
         }
+
+        // Check if an enterprise plan has expired
+        if ($row['plan'] === 'enterprise' && !empty($row['expires_at'])) {
+            if (strtotime($row['expires_at']) < time()) {
+                // Expired — downgrade to pro
+                $cfg  = self::config();
+                $pro  = $cfg['pro'];
+                $db->prepare("
+                    UPDATE plan_subscriptions
+                    SET plan='pro', max_clients=:mc, max_invoices=:mi, expires_at=NULL
+                    WHERE user_id=:uid
+                ")->execute([':mc'=>$pro['max_clients'],':mi'=>$pro['max_invoices'],':uid'=>$userId]);
+                $db->prepare("UPDATE users SET plan='pro' WHERE id=:uid")->execute([':uid'=>$userId]);
+                return ['plan'=>'pro','max_clients'=>$pro['max_clients'],'max_invoices'=>$pro['max_invoices'],'expires_at'=>null];
+            }
+        }
+
         return $row;
     }
 
