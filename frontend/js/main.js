@@ -415,10 +415,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 const removeBtn = document.getElementById('logo-remove-btn');
                 if (removeBtn) removeBtn.style.display = '';
-                // Also cache in localStorage for offline preview
-                const reader = new FileReader();
-                reader.onload = (ev) => localStorage.setItem('business_logo', ev.target.result);
-                reader.readAsDataURL(file);
+                // Remove any stale cached logo — server is now the single source of truth
+                localStorage.removeItem('business_logo');
                 if (statusEl) statusEl.textContent = '';
                 uiManager.showToast('success', 'Logo Uploaded', 'Logo saved and will appear on invoices.');
             } else {

@@ -1228,14 +1228,8 @@ class UIManager {
                 preview.innerHTML = `<img src="${data.logo_url}" style="width:100%;height:100%;object-fit:contain;border-radius:10px;">`;
                 if (removeBtn) removeBtn.style.display = '';
             } else if (preview) {
-                // Fall back to localStorage logo if no server logo
-                const localLogo = localStorage.getItem('business_logo');
-                if (localLogo) {
-                    preview.innerHTML = `<img src="${localLogo}" style="width:100%;height:100%;object-fit:contain;border-radius:10px;">`;
-                } else {
-                    preview.innerHTML = '<i class="fas fa-image"></i>';
-                    if (removeBtn) removeBtn.style.display = 'none';
-                }
+                preview.innerHTML = '<i class="fas fa-image"></i>';
+                if (removeBtn) removeBtn.style.display = 'none';
             }
         } catch (err) {
             console.warn('Load settings error:', err);
@@ -1588,11 +1582,11 @@ class UIManager {
           const bAddr = business.address ? `<p>${this.escapeHtml(business.address)}</p>` : '';
           const bGst = business.gst_number ? `<p>GST: ${this.escapeHtml(business.gst_number)}</p>` : '';
 
-          // Logo support — stored as base64 in localStorage
-          const logoDataUrl = localStorage.getItem('business_logo');
-          const logoHTML = logoDataUrl
-              ? `<img src="${logoDataUrl}" alt="Logo" style="max-height:56px;max-width:160px;object-fit:contain;margin-bottom:6px;display:block;">`
-              : '';
+           // Logo — always use server-stored URL, never localStorage (prevents cross-account leakage)
+           const logoDataUrl = business.logo_url || null;
+           const logoHTML = logoDataUrl
+               ? `<img src="${logoDataUrl}" alt="Logo" style="max-height:56px;max-width:160px;object-fit:contain;margin-bottom:6px;display:block;">`
+               : '';
         const invNum = this.escapeHtml(inv.invoice_number || '');
         const clientName = this.escapeHtml(inv.client_name || inv.client_name_snapshot || '');
         const clientCo = inv.client_company || inv.client_company_snapshot;
