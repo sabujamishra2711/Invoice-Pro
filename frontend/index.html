@@ -322,15 +322,65 @@
                                 </div>
                             </div>
                             <div class="form-row">
-                                <div class="form-group">
-                                    <label class="form-label">Currency</label>
-                                    <select class="form-control" id="invoice-currency">
-                                        <option value="INR">INR (₹)</option>
-                                        <option value="USD">USD ($)</option>
-                                        <option value="EUR">EUR (€)</option>
-                                        <option value="GBP">GBP (£)</option>
-                                    </select>
-                                </div>
+                                  <div class="form-group">
+                                      <label class="form-label">Currency</label>
+                                      <select class="form-control" id="invoice-currency">
+                                          <optgroup label="Most Used">
+                                              <option value="INR">INR — Indian Rupee (₹)</option>
+                                              <option value="USD">USD — US Dollar ($)</option>
+                                              <option value="EUR">EUR — Euro (€)</option>
+                                              <option value="GBP">GBP — British Pound (£)</option>
+                                              <option value="AED">AED — UAE Dirham (د.إ)</option>
+                                              <option value="SGD">SGD — Singapore Dollar (S$)</option>
+                                              <option value="AUD">AUD — Australian Dollar (A$)</option>
+                                              <option value="CAD">CAD — Canadian Dollar (C$)</option>
+                                          </optgroup>
+                                          <optgroup label="Asia Pacific">
+                                              <option value="JPY">JPY — Japanese Yen (¥)</option>
+                                              <option value="CNY">CNY — Chinese Yuan (¥)</option>
+                                              <option value="HKD">HKD — Hong Kong Dollar (HK$)</option>
+                                              <option value="MYR">MYR — Malaysian Ringgit (RM)</option>
+                                              <option value="IDR">IDR — Indonesian Rupiah (Rp)</option>
+                                              <option value="PHP">PHP — Philippine Peso (₱)</option>
+                                              <option value="THB">THB — Thai Baht (฿)</option>
+                                              <option value="KRW">KRW — South Korean Won (₩)</option>
+                                              <option value="NZD">NZD — New Zealand Dollar (NZ$)</option>
+                                              <option value="BDT">BDT — Bangladeshi Taka (৳)</option>
+                                              <option value="LKR">LKR — Sri Lankan Rupee (Rs)</option>
+                                              <option value="NPR">NPR — Nepalese Rupee (Rs)</option>
+                                              <option value="PKR">PKR — Pakistani Rupee (Rs)</option>
+                                          </optgroup>
+                                          <optgroup label="Europe">
+                                              <option value="CHF">CHF — Swiss Franc (Fr)</option>
+                                              <option value="SEK">SEK — Swedish Krona (kr)</option>
+                                              <option value="NOK">NOK — Norwegian Krone (kr)</option>
+                                              <option value="DKK">DKK — Danish Krone (kr)</option>
+                                              <option value="PLN">PLN — Polish Zloty (zł)</option>
+                                              <option value="CZK">CZK — Czech Koruna (Kč)</option>
+                                              <option value="HUF">HUF — Hungarian Forint (Ft)</option>
+                                              <option value="RON">RON — Romanian Leu (lei)</option>
+                                              <option value="TRY">TRY — Turkish Lira (₺)</option>
+                                              <option value="RUB">RUB — Russian Ruble (₽)</option>
+                                          </optgroup>
+                                          <optgroup label="Americas">
+                                              <option value="BRL">BRL — Brazilian Real (R$)</option>
+                                              <option value="MXN">MXN — Mexican Peso (MX$)</option>
+                                              <option value="CLP">CLP — Chilean Peso ($)</option>
+                                              <option value="COP">COP — Colombian Peso ($)</option>
+                                              <option value="ARS">ARS — Argentine Peso ($)</option>
+                                          </optgroup>
+                                          <optgroup label="Middle East &amp; Africa">
+                                              <option value="SAR">SAR — Saudi Riyal (﷼)</option>
+                                              <option value="QAR">QAR — Qatari Riyal (﷼)</option>
+                                              <option value="KWD">KWD — Kuwaiti Dinar (KD)</option>
+                                              <option value="BHD">BHD — Bahraini Dinar (BD)</option>
+                                              <option value="OMR">OMR — Omani Rial (﷼)</option>
+                                              <option value="ZAR">ZAR — South African Rand (R)</option>
+                                              <option value="EGP">EGP — Egyptian Pound (£)</option>
+                                              <option value="NGN">NGN — Nigerian Naira (₦)</option>
+                                          </optgroup>
+                                      </select>
+                                  </div>
                                 <div class="form-group" style="grid-column:span 2;">
                                     <label class="form-label">Notes</label>
                                     <textarea class="form-control" id="invoice-notes" rows="2"
@@ -673,15 +723,66 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Default Currency</label>
-                                <select class="form-control" id="setting-currency">
-                                    <option value="INR">INR (₹) — Indian Rupee</option>
-                                    <option value="USD">USD ($) — US Dollar</option>
-                                    <option value="EUR">EUR (€) — Euro</option>
-                                    <option value="GBP">GBP (£) — British Pound</option>
-                                </select>
-                            </div>
+                              <div class="form-group">
+                                  <label class="form-label">Default Currency</label>
+                                  <select class="form-control" id="setting-currency">
+                                      <optgroup label="Most Used">
+                                          <option value="INR">INR — Indian Rupee (₹)</option>
+                                          <option value="USD">USD — US Dollar ($)</option>
+                                          <option value="EUR">EUR — Euro (€)</option>
+                                          <option value="GBP">GBP — British Pound (£)</option>
+                                          <option value="AED">AED — UAE Dirham (د.إ)</option>
+                                          <option value="SGD">SGD — Singapore Dollar (S$)</option>
+                                          <option value="AUD">AUD — Australian Dollar (A$)</option>
+                                          <option value="CAD">CAD — Canadian Dollar (C$)</option>
+                                      </optgroup>
+                                      <optgroup label="Asia Pacific">
+                                          <option value="JPY">JPY — Japanese Yen (¥)</option>
+                                          <option value="CNY">CNY — Chinese Yuan (¥)</option>
+                                          <option value="HKD">HKD — Hong Kong Dollar (HK$)</option>
+                                          <option value="MYR">MYR — Malaysian Ringgit (RM)</option>
+                                          <option value="IDR">IDR — Indonesian Rupiah (Rp)</option>
+                                          <option value="PHP">PHP — Philippine Peso (₱)</option>
+                                          <option value="THB">THB — Thai Baht (฿)</option>
+                                          <option value="KRW">KRW — South Korean Won (₩)</option>
+                                          <option value="NZD">NZD — New Zealand Dollar (NZ$)</option>
+                                          <option value="BDT">BDT — Bangladeshi Taka (৳)</option>
+                                          <option value="LKR">LKR — Sri Lankan Rupee (Rs)</option>
+                                          <option value="NPR">NPR — Nepalese Rupee (Rs)</option>
+                                          <option value="PKR">PKR — Pakistani Rupee (Rs)</option>
+                                      </optgroup>
+                                      <optgroup label="Europe">
+                                          <option value="CHF">CHF — Swiss Franc (Fr)</option>
+                                          <option value="SEK">SEK — Swedish Krona (kr)</option>
+                                          <option value="NOK">NOK — Norwegian Krone (kr)</option>
+                                          <option value="DKK">DKK — Danish Krone (kr)</option>
+                                          <option value="PLN">PLN — Polish Zloty (zł)</option>
+                                          <option value="CZK">CZK — Czech Koruna (Kč)</option>
+                                          <option value="HUF">HUF — Hungarian Forint (Ft)</option>
+                                          <option value="RON">RON — Romanian Leu (lei)</option>
+                                          <option value="TRY">TRY — Turkish Lira (₺)</option>
+                                          <option value="RUB">RUB — Russian Ruble (₽)</option>
+                                      </optgroup>
+                                      <optgroup label="Americas">
+                                          <option value="BRL">BRL — Brazilian Real (R$)</option>
+                                          <option value="MXN">MXN — Mexican Peso (MX$)</option>
+                                          <option value="CLP">CLP — Chilean Peso ($)</option>
+                                          <option value="COP">COP — Colombian Peso ($)</option>
+                                          <option value="ARS">ARS — Argentine Peso ($)</option>
+                                      </optgroup>
+                                      <optgroup label="Middle East &amp; Africa">
+                                          <option value="SAR">SAR — Saudi Riyal (﷼)</option>
+                                          <option value="QAR">QAR — Qatari Riyal (﷼)</option>
+                                          <option value="KWD">KWD — Kuwaiti Dinar (KD)</option>
+                                          <option value="BHD">BHD — Bahraini Dinar (BD)</option>
+                                          <option value="OMR">OMR — Omani Rial (﷼)</option>
+                                          <option value="ZAR">ZAR — South African Rand (R)</option>
+                                          <option value="EGP">EGP — Egyptian Pound (£)</option>
+                                          <option value="NGN">NGN — Nigerian Naira (₦)</option>
+                                      </optgroup>
+                                  </select>
+                                  <p style="font-size:0.75rem;color:var(--text-tertiary);margin-top:4px;">This will pre-select on all new invoices.</p>
+                              </div>
                             <!-- Invoice Appearance -->
                             <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border-color);">
                                 <h4 style="font-size:0.9rem;font-weight:700;color:var(--text-primary);margin-bottom:16px;">Invoice Appearance</h4>

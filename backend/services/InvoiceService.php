@@ -1,6 +1,7 @@
 <?php
 // Invoice Business Logic Service
 require_once __DIR__ . '/InvoiceNumberGenerator.php';
+require_once __DIR__ . '/../helpers/Validator.php';
 
 class InvoiceService
 {
@@ -235,10 +236,11 @@ class InvoiceService
                 business_logo_path_snapshot
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
-            $issueDate = $invoiceData['issue_date'] ?? date('Y-m-d');
-            $dueDate = $invoiceData['due_date'] ?? date('Y-m-d', strtotime('+30 days'));
-            $status = $invoiceData['status'] ?? 'draft';
-            $currency = $invoiceData['currency'] ?? 'INR';
+              $issueDate = $invoiceData['issue_date'] ?? date('Y-m-d');
+              $dueDate = $invoiceData['due_date'] ?? date('Y-m-d', strtotime('+30 days'));
+              $status = $invoiceData['status'] ?? 'draft';
+              $rawCurrency = strtoupper(trim($invoiceData['currency'] ?? 'INR'));
+              $currency = in_array($rawCurrency, Validator::validCurrencies(), true) ? $rawCurrency : 'INR';
 
             $stmt->execute([
                 $userId,
@@ -396,10 +398,11 @@ class InvoiceService
                 $updateParams[] = $invoiceData['notes'];
             }
 
-            if (isset($invoiceData['currency'])) {
-                $updateFields[] = "currency = ?";
-                $updateParams[] = $invoiceData['currency'];
-            }
+              if (isset($invoiceData['currency'])) {
+                  $rawCurrency = strtoupper(trim($invoiceData['currency']));
+                  $updateFields[] = "currency = ?";
+                  $updateParams[] = in_array($rawCurrency, Validator::validCurrencies(), true) ? $rawCurrency : 'INR';
+              }
 
             if (!empty($updateFields)) {
                 $updateQuery = "UPDATE invoices SET " . implode(", ", $updateFields) . " WHERE id = ?";

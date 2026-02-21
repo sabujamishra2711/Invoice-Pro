@@ -270,14 +270,16 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     if (window.location.hash === '#settings') syncSettingsAppearanceUI();
 
-    // ── Save Invoice Settings (template + color) ──
+    // ── Save Invoice Settings (template + color + default currency) ──
     document.getElementById('save-invoice-settings')?.addEventListener('click', () => {
         const activeTpl = document.querySelector('.settings-tpl-btn.active');
         const tpl = activeTpl ? parseInt(activeTpl.dataset.tpl) : 1;
         const color = document.getElementById('settings-accent-picker')?.value || '#6366f1';
+        const currency = document.getElementById('setting-currency')?.value || 'INR';
         localStorage.setItem('inv_template', tpl);
         localStorage.setItem('inv_accent_color', color);
-        uiManager.showToast('success', 'Saved', 'Invoice appearance saved as default.');
+        localStorage.setItem('default_currency', currency);
+        uiManager.showToast('success', 'Saved', 'Invoice appearance and default currency saved.');
     });
 
     // ── Save Account Settings ──

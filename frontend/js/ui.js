@@ -345,7 +345,10 @@ class UIManager {
                     <div style="font-weight:500;">${this.escapeHtml(inv.client_name || '')}</div>
                     ${inv.client_company ? `<div style="font-size:0.78rem;color:var(--text-tertiary);">${this.escapeHtml(inv.client_company)}</div>` : ''}
                 </td>
-                <td style="font-weight:600;">${this.formatCurrency(inv.total_amount)}</td>
+                <td style="font-weight:600;">
+                    ${this.formatCurrency(inv.total_amount, inv.currency)}
+                    ${inv.currency && inv.currency !== 'INR' ? `<span style="font-size:0.72rem;color:var(--text-tertiary);margin-left:3px;">${this.escapeHtml(inv.currency)}</span>` : ''}
+                </td>
                 <td style="color:var(--text-secondary);font-size:0.84rem;">${this.formatDate(inv.issue_date)}</td>
                 <td style="color:var(--text-secondary);font-size:0.84rem;">${this.formatDate(inv.due_date)}</td>
                 <td><span class="status-pill ${inv.status}"><span class="status-dot"></span>${inv.status}</span></td>
@@ -386,6 +389,20 @@ class UIManager {
         document.getElementById('invoice-issue-date').value = invoiceData?.issue_date || today;
         document.getElementById('invoice-due-date').value = invoiceData?.due_date || dueDate.toISOString().split('T')[0];
 
+        // Determine currency: invoice currency > settings default > localStorage > INR
+        const defaultCurrency = invoiceData?.currency
+            || document.getElementById('setting-currency')?.value
+            || localStorage.getItem('default_currency')
+            || 'INR';
+        document.getElementById('invoice-currency').value = defaultCurrency;
+
+        // Wire currency change → update totals symbol immediately
+        const currencySelect = document.getElementById('invoice-currency');
+        if (currencySelect && !currencySelect._currencyWired) {
+            currencySelect._currencyWired = true;
+            currencySelect.addEventListener('change', () => this.calculateInvoiceTotals());
+        }
+
         // Clear and add items
         const container = document.getElementById('invoice-items-container');
         container.innerHTML = '';
@@ -394,7 +411,6 @@ class UIManager {
             invoiceData.items.forEach(item => this.addInvoiceItemRow(item));
             document.getElementById('invoice-id').value = invoiceData.id;
             document.getElementById('invoice-client').value = invoiceData.client_id;
-            document.getElementById('invoice-currency').value = invoiceData.currency || 'INR';
             document.getElementById('invoice-notes').value = invoiceData.notes || '';
         } else {
             this.addInvoiceItemRow();
@@ -447,6 +463,8 @@ class UIManager {
         let subtotal = 0;
         let totalTax = 0;
 
+        const currency = document.getElementById('invoice-currency')?.value || 'INR';
+
         rows.forEach(row => {
             const qty = parseFloat(row.querySelector('.item-qty').value) || 0;
             const rate = parseFloat(row.querySelector('.item-rate').value) || 0;
@@ -460,9 +478,10 @@ class UIManager {
             totalTax += lineTax;
         });
 
-        this._setText('invoice-subtotal', subtotal.toFixed(2));
-        this._setText('invoice-tax', totalTax.toFixed(2));
-        this._setText('invoice-total', (subtotal + totalTax).toFixed(2));
+        const sym = this.currencySymbol(currency);
+        this._setText('invoice-subtotal', sym + subtotal.toFixed(2));
+        this._setText('invoice-tax',      sym + totalTax.toFixed(2));
+        this._setText('invoice-total',    sym + (subtotal + totalTax).toFixed(2));
     }
 
     async saveInvoice() {
@@ -1168,8 +1187,9 @@ class UIManager {
         this._setVal('setting-theme', savedTheme);
 
         // ── Populate Invoice Appearance tab ──
-        const savedTpl   = parseInt(localStorage.getItem('inv_template') || '1');
-        const savedColor = localStorage.getItem('inv_accent_color') || '#6366f1';
+        const savedTpl      = parseInt(localStorage.getItem('inv_template') || '1');
+        const savedColor    = localStorage.getItem('inv_accent_color') || '#6366f1';
+        const savedCurrency = localStorage.getItem('default_currency') || 'INR';
 
         document.querySelectorAll('.settings-tpl-btn').forEach(b => {
             b.classList.toggle('active', parseInt(b.dataset.tpl) === savedTpl);
@@ -1181,6 +1201,10 @@ class UIManager {
         document.querySelectorAll('.settings-color-swatch').forEach(s => {
             s.classList.toggle('active', s.dataset.color === savedColor);
         });
+
+        // Restore default currency dropdown
+        const currencyDropdown = document.getElementById('setting-currency');
+        if (currencyDropdown) currencyDropdown.value = savedCurrency;
     }
 
     initSettingsTabs() {
@@ -2089,8 +2113,7 @@ class UIManager {
 
         const balance = parseFloat(inv.total_amount) - parseFloat(inv.paid_amount || 0);
         const currency = inv.currency || 'INR';
-        const symbols  = { INR: '₹', USD: '$', EUR: '€', GBP: '£' };
-        const sym      = symbols[currency] || currency;
+        const sym      = this.currencySymbol(currency);
 
         document.getElementById('email-message').value =
             `Dear ${inv.client_name},\n\nPlease find attached invoice ${inv.invoice_number} for ${sym}${balance.toLocaleString('en-IN', {minimumFractionDigits: 2})}.\n\nDue date: ${inv.due_date}\n\nThank you for your business!\n\nBest regards,\n${bizName}`;
@@ -2305,11 +2328,74 @@ class UIManager {
     }
 
     // ── Helpers ──
+
+    // Currency metadata: symbol + locale for proper number formatting
+    static get CURRENCIES() {
+        return {
+            INR: { symbol: '₹',     locale: 'en-IN',  decimals: 2 },
+            USD: { symbol: '$',     locale: 'en-US',  decimals: 2 },
+            EUR: { symbol: '€',     locale: 'de-DE',  decimals: 2 },
+            GBP: { symbol: '£',     locale: 'en-GB',  decimals: 2 },
+            AED: { symbol: 'د.إ',  locale: 'ar-AE',  decimals: 2 },
+            SGD: { symbol: 'S$',    locale: 'en-SG',  decimals: 2 },
+            AUD: { symbol: 'A$',    locale: 'en-AU',  decimals: 2 },
+            CAD: { symbol: 'C$',    locale: 'en-CA',  decimals: 2 },
+            JPY: { symbol: '¥',     locale: 'ja-JP',  decimals: 0 },
+            CNY: { symbol: '¥',     locale: 'zh-CN',  decimals: 2 },
+            HKD: { symbol: 'HK$',   locale: 'zh-HK',  decimals: 2 },
+            MYR: { symbol: 'RM',    locale: 'ms-MY',  decimals: 2 },
+            IDR: { symbol: 'Rp',    locale: 'id-ID',  decimals: 0 },
+            PHP: { symbol: '₱',     locale: 'fil-PH', decimals: 2 },
+            THB: { symbol: '฿',     locale: 'th-TH',  decimals: 2 },
+            KRW: { symbol: '₩',     locale: 'ko-KR',  decimals: 0 },
+            NZD: { symbol: 'NZ$',   locale: 'en-NZ',  decimals: 2 },
+            BDT: { symbol: '৳',     locale: 'bn-BD',  decimals: 2 },
+            LKR: { symbol: 'Rs',    locale: 'si-LK',  decimals: 2 },
+            NPR: { symbol: 'Rs',    locale: 'ne-NP',  decimals: 2 },
+            PKR: { symbol: 'Rs',    locale: 'ur-PK',  decimals: 2 },
+            CHF: { symbol: 'Fr',    locale: 'de-CH',  decimals: 2 },
+            SEK: { symbol: 'kr',    locale: 'sv-SE',  decimals: 2 },
+            NOK: { symbol: 'kr',    locale: 'nb-NO',  decimals: 2 },
+            DKK: { symbol: 'kr',    locale: 'da-DK',  decimals: 2 },
+            PLN: { symbol: 'zł',    locale: 'pl-PL',  decimals: 2 },
+            CZK: { symbol: 'Kč',    locale: 'cs-CZ',  decimals: 2 },
+            HUF: { symbol: 'Ft',    locale: 'hu-HU',  decimals: 0 },
+            RON: { symbol: 'lei',   locale: 'ro-RO',  decimals: 2 },
+            TRY: { symbol: '₺',     locale: 'tr-TR',  decimals: 2 },
+            RUB: { symbol: '₽',     locale: 'ru-RU',  decimals: 2 },
+            BRL: { symbol: 'R$',    locale: 'pt-BR',  decimals: 2 },
+            MXN: { symbol: 'MX$',   locale: 'es-MX',  decimals: 2 },
+            CLP: { symbol: '$',     locale: 'es-CL',  decimals: 0 },
+            COP: { symbol: '$',     locale: 'es-CO',  decimals: 0 },
+            ARS: { symbol: '$',     locale: 'es-AR',  decimals: 2 },
+            SAR: { symbol: '﷼',     locale: 'ar-SA',  decimals: 2 },
+            QAR: { symbol: '﷼',     locale: 'ar-QA',  decimals: 2 },
+            KWD: { symbol: 'KD',    locale: 'ar-KW',  decimals: 3 },
+            BHD: { symbol: 'BD',    locale: 'ar-BH',  decimals: 3 },
+            OMR: { symbol: '﷼',     locale: 'ar-OM',  decimals: 3 },
+            ZAR: { symbol: 'R',     locale: 'en-ZA',  decimals: 2 },
+            EGP: { symbol: '£',     locale: 'ar-EG',  decimals: 2 },
+            NGN: { symbol: '₦',     locale: 'en-NG',  decimals: 2 },
+        };
+    }
+
     formatCurrency(amount, currency = 'INR') {
         const num = parseFloat(amount) || 0;
-        const symbols = { INR: '₹', USD: '$', EUR: '€', GBP: '£' };
-        const symbol = symbols[currency] || '₹';
-        return symbol + num.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        const meta = UIManager.CURRENCIES[currency] || UIManager.CURRENCIES['INR'];
+        try {
+            const formatted = num.toLocaleString(meta.locale, {
+                minimumFractionDigits: meta.decimals === 0 ? 0 : 2,
+                maximumFractionDigits: meta.decimals
+            });
+            return meta.symbol + formatted;
+        } catch {
+            return meta.symbol + num.toFixed(meta.decimals);
+        }
+    }
+
+    // Return just the symbol for a currency code
+    currencySymbol(currency = 'INR') {
+        return (UIManager.CURRENCIES[currency] || UIManager.CURRENCIES['INR']).symbol;
     }
 
     formatDate(dateStr) {

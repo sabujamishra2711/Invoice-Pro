@@ -60,6 +60,18 @@ class Validator
         }
     }
 
+    // Supported currencies (ISO 4217)
+    public static function validCurrencies(): array
+    {
+        return [
+            'INR','USD','EUR','GBP','AED','SGD','AUD','CAD',
+            'JPY','CNY','HKD','MYR','IDR','PHP','THB','KRW','NZD','BDT','LKR','NPR','PKR',
+            'CHF','SEK','NOK','DKK','PLN','CZK','HUF','RON','TRY','RUB',
+            'BRL','MXN','CLP','COP','ARS',
+            'SAR','QAR','KWD','BHD','OMR','ZAR','EGP','NGN',
+        ];
+    }
+
     // Specific validation methods
     public static function validateInvoiceData($data)
     {
@@ -73,6 +85,11 @@ class Validator
 
         if (!$validator->validate($data, $rules)) {
             return $validator->getErrors();
+        }
+
+        // Validate currency if provided
+        if (!empty($data['currency']) && !in_array($data['currency'], self::validCurrencies(), true)) {
+            $validator->errors['currency'][] = "Invalid currency code";
         }
 
         // Additional business logic validation
