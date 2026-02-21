@@ -170,7 +170,7 @@ class AuthManager {
 
     logout() {
         ['auth_token','user_email','user_name','auth_provider',
-         'user_id','user_phone','user_verified'].forEach(k => localStorage.removeItem(k));
+         'user_id','user_phone','user_verified','business_logo'].forEach(k => localStorage.removeItem(k));
         this._user = null;
         // Sign out of Firebase too (if active)
         if (typeof firebase !== 'undefined' && firebase.apps.length) {
@@ -193,6 +193,7 @@ class AuthManager {
 
     _persist(data) {
         const u = data.user || {};
+        localStorage.removeItem('business_logo'); // clear any stale logo from a previous session
         localStorage.setItem('auth_token',    data.token              || '');
         localStorage.setItem('user_email',    u.email                 || '');
         localStorage.setItem('user_name',     u.name                  || '');
