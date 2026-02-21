@@ -173,5 +173,82 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('user-dropdown')?.classList.remove('show');
     });
 
+    // ── Settings Appearance Panel ──
+    function syncSettingsAppearanceUI() {
+        const savedTpl = parseInt(localStorage.getItem('inv_template') || '1');
+        const savedColor = localStorage.getItem('inv_accent_color') || '#6366f1';
+
+        document.querySelectorAll('.settings-tpl-btn').forEach(b => {
+            b.classList.toggle('active', parseInt(b.dataset.tpl) === savedTpl);
+        });
+        const picker = document.getElementById('settings-accent-picker');
+        const label = document.getElementById('settings-color-label');
+        if (picker) picker.value = savedColor;
+        if (label) label.textContent = savedColor;
+        document.querySelectorAll('.settings-color-swatch').forEach(s => {
+            s.classList.toggle('active', s.dataset.color === savedColor);
+        });
+    }
+
+    document.querySelectorAll('.settings-tpl-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tpl = parseInt(btn.dataset.tpl);
+            localStorage.setItem('inv_template', tpl);
+            // Also sync preview toolbar if open
+            document.querySelectorAll('.inv-tpl-btn').forEach(b => {
+                b.classList.toggle('active', parseInt(b.dataset.tpl) === tpl);
+            });
+            document.querySelectorAll('.settings-tpl-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            // Re-render preview if data is loaded
+            if (uiManager._previewData) {
+                uiManager._currentTemplate = tpl;
+                uiManager._renderInvoicePreview();
+            }
+        });
+    });
+
+    document.querySelectorAll('.settings-color-swatch').forEach(swatch => {
+        swatch.addEventListener('click', () => {
+            const color = swatch.dataset.color;
+            localStorage.setItem('inv_accent_color', color);
+            document.querySelectorAll('.settings-color-swatch').forEach(s => s.classList.remove('active'));
+            swatch.classList.add('active');
+            const picker = document.getElementById('settings-accent-picker');
+            const label = document.getElementById('settings-color-label');
+            if (picker) picker.value = color;
+            if (label) label.textContent = color;
+            // Also sync preview toolbar
+            document.querySelectorAll('.inv-color-swatch:not(.settings-color-swatch)').forEach(s => {
+                s.classList.toggle('active', s.dataset.color === color);
+            });
+            if (uiManager._previewData) {
+                uiManager._currentAccentColor = color;
+                uiManager._renderInvoicePreview();
+            }
+        });
+    });
+
+    const settingsColorPicker = document.getElementById('settings-accent-picker');
+    if (settingsColorPicker) {
+        settingsColorPicker.addEventListener('input', () => {
+            const color = settingsColorPicker.value;
+            localStorage.setItem('inv_accent_color', color);
+            const label = document.getElementById('settings-color-label');
+            if (label) label.textContent = color;
+            document.querySelectorAll('.settings-color-swatch').forEach(s => s.classList.remove('active'));
+            if (uiManager._previewData) {
+                uiManager._currentAccentColor = color;
+                uiManager._renderInvoicePreview();
+            }
+        });
+    }
+
+    // Sync settings appearance UI when settings tab opens
+    window.addEventListener('hashchange', () => {
+        if (window.location.hash === '#settings') syncSettingsAppearanceUI();
+    });
+    if (window.location.hash === '#settings') syncSettingsAppearanceUI();
+
     console.log('✅ InvoicePro initialized');
 });

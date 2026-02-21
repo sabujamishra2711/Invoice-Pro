@@ -930,6 +930,22 @@ class UIManager {
                 if (activePanel) {
                     activePanel.classList.add('active');
                 }
+
+                // Sync appearance UI when invoice settings tab is shown
+                if (tabId === 'invoice-settings') {
+                    const savedTpl = parseInt(localStorage.getItem('inv_template') || '1');
+                    const savedColor = localStorage.getItem('inv_accent_color') || '#6366f1';
+                    document.querySelectorAll('.settings-tpl-btn').forEach(b => {
+                        b.classList.toggle('active', parseInt(b.dataset.tpl) === savedTpl);
+                    });
+                    const picker = document.getElementById('settings-accent-picker');
+                    const label = document.getElementById('settings-color-label');
+                    if (picker) picker.value = savedColor;
+                    if (label) label.textContent = savedColor;
+                    document.querySelectorAll('.settings-color-swatch').forEach(s => {
+                        s.classList.toggle('active', s.dataset.color === savedColor);
+                    });
+                }
             });
         });
     }
@@ -1048,109 +1064,398 @@ class UIManager {
             const balance = total - paid;
             const status = inv.calculated_status || inv.status || 'draft';
 
-            const paper = document.getElementById('invoice-preview-content');
-            paper.innerHTML = `
-                <div class="inv-header">
-                    <div class="inv-brand">
-                        <h1>${this.escapeHtml(business.business_name || 'Your Business')}</h1>
-                        ${business.address ? `<p>${this.escapeHtml(business.address)}</p>` : ''}
-                        ${business.gst_number ? `<p>GST: ${this.escapeHtml(business.gst_number)}</p>` : ''}
-                    </div>
-                    <div class="inv-meta">
-                        <div class="inv-number">${this.escapeHtml(inv.invoice_number || '')}</div>
-                        <div class="inv-date">Issued: ${this.formatDate(inv.issue_date)}</div>
-                        <div class="inv-date">Due: ${this.formatDate(inv.due_date)}</div>
-                        <div style="margin-top:8px;">
-                            <span class="inv-status-badge ${status}">${status}</span>
-                        </div>
-                    </div>
-                </div>
+            // Save invoice data for re-render when template/color changes
+            this._previewData = { inv, items, payments, business, subtotal, totalTax, total, paid, balance, status };
 
-                <div class="inv-parties">
-                    <div>
-                        <div class="inv-party-label">Bill To</div>
-                        <div class="inv-party-name">${this.escapeHtml(inv.client_name || inv.client_name_snapshot || '')}</div>
-                        ${(inv.client_company || inv.client_company_snapshot) ? `<div class="inv-party-detail">${this.escapeHtml(inv.client_company || inv.client_company_snapshot)}</div>` : ''}
-                        ${(inv.client_email || inv.client_email_snapshot) ? `<div class="inv-party-detail">${this.escapeHtml(inv.client_email || inv.client_email_snapshot)}</div>` : ''}
-                        ${(inv.client_address || inv.client_address_snapshot) ? `<div class="inv-party-detail">${this.escapeHtml(inv.client_address || inv.client_address_snapshot)}</div>` : ''}
-                        ${(inv.client_gst_snapshot) ? `<div class="inv-party-detail">GST: ${this.escapeHtml(inv.client_gst_snapshot)}</div>` : ''}
-                    </div>
-                    <div>
-                        <div class="inv-party-label">Payment Info</div>
-                        <div class="inv-party-detail">Currency: ${this.escapeHtml(inv.currency || 'INR')}</div>
-                        ${business.payment_terms ? `<div class="inv-party-detail" style="white-space:pre-line;">${this.escapeHtml(business.payment_terms)}</div>` : ''}
-                    </div>
-                </div>
+            // Restore or default template/color
+            const savedTpl = parseInt(localStorage.getItem('inv_template') || '1');
+            const savedColor = localStorage.getItem('inv_accent_color') || '#6366f1';
 
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width:40%;">Description</th>
-                            <th style="text-align:right;">Qty</th>
-                            <th style="text-align:right;">Rate</th>
-                            <th style="text-align:right;">Tax %</th>
-                            <th style="text-align:right;">Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${items.map(it => {
-                const lineBase = parseFloat(it.quantity) * parseFloat(it.rate);
-                const lineTax = lineBase * (parseFloat(it.tax_percent) || 0) / 100;
-                return `<tr>
-                                <td>${this.escapeHtml(it.description)}</td>
-                                <td style="text-align:right;">${parseFloat(it.quantity)}</td>
-                                <td style="text-align:right;">${this.formatCurrency(it.rate, inv.currency)}</td>
-                                <td style="text-align:right;">${parseFloat(it.tax_percent || 0)}%</td>
-                                <td style="text-align:right;font-weight:600;">${this.formatCurrency(lineBase + lineTax, inv.currency)}</td>
-                            </tr>`;
-            }).join('')}
-                    </tbody>
-                </table>
+            this._currentTemplate = savedTpl;
+            this._currentAccentColor = savedColor;
 
-                <div class="inv-totals">
-                    <div class="inv-totals-table">
-                        <div class="row"><span>Subtotal</span><span>${this.formatCurrency(subtotal, inv.currency)}</span></div>
-                        <div class="row"><span>Tax</span><span>${this.formatCurrency(totalTax, inv.currency)}</span></div>
-                        <div class="row grand"><span>Total</span><span>${this.formatCurrency(total, inv.currency)}</span></div>
-                        ${paid > 0 ? `
-                            <div class="row" style="color:var(--success);margin-top:6px;"><span>Paid</span><span>- ${this.formatCurrency(paid, inv.currency)}</span></div>
-                            <div class="row" style="font-weight:600;"><span>Balance Due</span><span>${this.formatCurrency(balance, inv.currency)}</span></div>
-                        ` : ''}
-                    </div>
-                </div>
+            // Render
+            this._renderInvoicePreview();
 
-                ${inv.notes ? `<div style="margin-top:16px;padding:12px;background:#f8fafc;border-radius:8px;font-size:12px;color:#475569;"><strong>Notes:</strong> ${this.escapeHtml(inv.notes)}</div>` : ''}
-
-                ${payments.length ? `
-                    <div style="margin-top:24px;">
-                        <div class="inv-party-label" style="margin-bottom:8px;">Payment History</div>
-                        <table>
-                            <thead><tr><th>Date</th><th>Method</th><th style="text-align:right;">Amount</th><th>Reference</th></tr></thead>
-                            <tbody>${payments.map(p => `
-                                <tr>
-                                    <td>${this.formatDate(p.payment_date)}</td>
-                                    <td>${this.escapeHtml(p.method)}</td>
-                                    <td style="text-align:right;font-weight:600;color:#166534;">${this.formatCurrency(p.amount, inv.currency)}</td>
-                                    <td>${this.escapeHtml(p.reference || '—')}</td>
-                                </tr>
-                            `).join('')}</tbody>
-                        </table>
-                    </div>
-                ` : ''}
-
-                <div class="inv-footer">
-                    Thank you for your business!<br>
-                    Generated by InvoicePro
-                </div>
-            `;
+            // Update toolbar UI to match saved settings
+            document.querySelectorAll('.inv-tpl-btn').forEach(b => {
+                b.classList.toggle('active', parseInt(b.dataset.tpl) === savedTpl);
+            });
+            const picker = document.getElementById('inv-accent-picker');
+            if (picker) picker.value = savedColor;
+            document.querySelectorAll('.inv-color-swatch').forEach(s => {
+                s.classList.toggle('active', s.dataset.color === savedColor);
+            });
 
             // Store for print/download
             this._currentPreviewInvoice = inv;
             this.openModal('invoice-preview-modal');
 
+            // Init toolbar listeners (once — guard with flag)
+            if (!this._toolbarInitialized) {
+                this._initPreviewToolbar();
+                this._toolbarInitialized = true;
+            }
+
         } catch (err) {
             this.showToast('error', 'Error', 'Could not load invoice preview.');
             console.error(err);
+        }
+    }
+
+    _initPreviewToolbar() {
+        // Template buttons
+        document.querySelectorAll('.inv-tpl-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                this._currentTemplate = parseInt(btn.dataset.tpl);
+                localStorage.setItem('inv_template', this._currentTemplate);
+                document.querySelectorAll('.inv-tpl-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                this._renderInvoicePreview();
+            });
+        });
+
+        // Color swatches
+        document.querySelectorAll('.inv-color-swatch').forEach(swatch => {
+            swatch.addEventListener('click', () => {
+                this._currentAccentColor = swatch.dataset.color;
+                localStorage.setItem('inv_accent_color', this._currentAccentColor);
+                document.querySelectorAll('.inv-color-swatch').forEach(s => s.classList.remove('active'));
+                swatch.classList.add('active');
+                const picker = document.getElementById('inv-accent-picker');
+                if (picker) picker.value = this._currentAccentColor;
+                this._renderInvoicePreview();
+            });
+        });
+
+        // Color picker
+        const picker = document.getElementById('inv-accent-picker');
+        if (picker) {
+            picker.addEventListener('input', () => {
+                this._currentAccentColor = picker.value;
+                localStorage.setItem('inv_accent_color', this._currentAccentColor);
+                document.querySelectorAll('.inv-color-swatch').forEach(s => s.classList.remove('active'));
+                this._renderInvoicePreview();
+            });
+        }
+    }
+
+    _renderInvoicePreview() {
+        const d = this._previewData;
+        if (!d) return;
+
+        const tpl = this._currentTemplate || 1;
+        const accent = this._currentAccentColor || '#6366f1';
+
+        const paper = document.getElementById('invoice-preview-content');
+        paper.className = `inv-tpl-${tpl}`;
+        paper.style.setProperty('--inv-accent', accent);
+
+        const { inv, items, payments, business, subtotal, totalTax, total, paid, balance, status } = d;
+
+        const itemsHTML = items.map(it => {
+            const lineBase = parseFloat(it.quantity) * parseFloat(it.rate);
+            const lineTax = lineBase * (parseFloat(it.tax_percent) || 0) / 100;
+            return `<tr>
+                <td>${this.escapeHtml(it.description)}</td>
+                <td style="text-align:right;">${parseFloat(it.quantity)}</td>
+                <td style="text-align:right;">${this.formatCurrency(it.rate, inv.currency)}</td>
+                <td style="text-align:right;">${parseFloat(it.tax_percent || 0)}%</td>
+                <td style="text-align:right;font-weight:600;">${this.formatCurrency(lineBase + lineTax, inv.currency)}</td>
+            </tr>`;
+        }).join('');
+
+        const tableHTML = `
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:40%;">Description</th>
+                        <th style="text-align:right;">Qty</th>
+                        <th style="text-align:right;">Rate</th>
+                        <th style="text-align:right;">Tax %</th>
+                        <th style="text-align:right;">Amount</th>
+                    </tr>
+                </thead>
+                <tbody>${itemsHTML}</tbody>
+            </table>`;
+
+        const totalsHTML = `
+            <div class="inv-totals">
+                <div class="inv-totals-table">
+                    <div class="row"><span>Subtotal</span><span>${this.formatCurrency(subtotal, inv.currency)}</span></div>
+                    <div class="row"><span>Tax</span><span>${this.formatCurrency(totalTax, inv.currency)}</span></div>
+                    <div class="row grand"><span>Total</span><span>${this.formatCurrency(total, inv.currency)}</span></div>
+                    ${paid > 0 ? `
+                        <div class="row" style="margin-top:6px;"><span>Paid</span><span>- ${this.formatCurrency(paid, inv.currency)}</span></div>
+                        <div class="row" style="font-weight:600;"><span>Balance Due</span><span>${this.formatCurrency(balance, inv.currency)}</span></div>
+                    ` : ''}
+                </div>
+            </div>`;
+
+        const notesHTML = inv.notes ? `<div style="margin-top:16px;padding:12px;border-radius:8px;font-size:12px;opacity:.8;"><strong>Notes:</strong> ${this.escapeHtml(inv.notes)}</div>` : '';
+
+        const paymentsHTML = payments.length ? `
+            <div style="margin-top:24px;">
+                <div class="inv-party-label" style="margin-bottom:8px;">Payment History</div>
+                <table>
+                    <thead><tr><th>Date</th><th>Method</th><th style="text-align:right;">Amount</th><th>Reference</th></tr></thead>
+                    <tbody>${payments.map(p => `
+                        <tr>
+                            <td>${this.formatDate(p.payment_date)}</td>
+                            <td>${this.escapeHtml(p.method)}</td>
+                            <td style="text-align:right;font-weight:600;">${this.formatCurrency(p.amount, inv.currency)}</td>
+                            <td>${this.escapeHtml(p.reference || '—')}</td>
+                        </tr>
+                    `).join('')}</tbody>
+                </table>
+            </div>` : '';
+
+        const bName = this.escapeHtml(business.business_name || 'Your Business');
+        const bAddr = business.address ? `<p>${this.escapeHtml(business.address)}</p>` : '';
+        const bGst = business.gst_number ? `<p>GST: ${this.escapeHtml(business.gst_number)}</p>` : '';
+        const invNum = this.escapeHtml(inv.invoice_number || '');
+        const clientName = this.escapeHtml(inv.client_name || inv.client_name_snapshot || '');
+        const clientCo = inv.client_company || inv.client_company_snapshot;
+        const clientEmail = inv.client_email || inv.client_email_snapshot;
+        const clientAddr = inv.client_address || inv.client_address_snapshot;
+        const clientGst = inv.client_gst_snapshot;
+        const currency = this.escapeHtml(inv.currency || 'INR');
+        const payTerms = business.payment_terms;
+
+        const billToHTML = `
+            <div class="inv-party-name">${clientName}</div>
+            ${clientCo ? `<div class="inv-party-detail">${this.escapeHtml(clientCo)}</div>` : ''}
+            ${clientEmail ? `<div class="inv-party-detail">${this.escapeHtml(clientEmail)}</div>` : ''}
+            ${clientAddr ? `<div class="inv-party-detail">${this.escapeHtml(clientAddr)}</div>` : ''}
+            ${clientGst ? `<div class="inv-party-detail">GST: ${this.escapeHtml(clientGst)}</div>` : ''}`;
+
+        const payInfoHTML = `
+            <div class="inv-party-detail">Currency: ${currency}</div>
+            ${payTerms ? `<div class="inv-party-detail" style="white-space:pre-line;">${this.escapeHtml(payTerms)}</div>` : ''}`;
+
+        // ── Build HTML per template ──
+        switch (tpl) {
+            case 1: paper.innerHTML = `
+                <div class="inv-header">
+                    <div class="inv-brand"><h1>${bName}</h1>${bAddr}${bGst}</div>
+                    <div class="inv-meta">
+                        <div class="inv-number">${invNum}</div>
+                        <div class="inv-date">Issued: ${this.formatDate(inv.issue_date)}</div>
+                        <div class="inv-date">Due: ${this.formatDate(inv.due_date)}</div>
+                        <div style="margin-top:8px;"><span class="inv-status-badge ${status}">${status}</span></div>
+                    </div>
+                </div>
+                <div class="inv-parties">
+                    <div><div class="inv-party-label">Bill To</div>${billToHTML}</div>
+                    <div><div class="inv-party-label">Payment Info</div>${payInfoHTML}</div>
+                </div>
+                ${tableHTML}${totalsHTML}${notesHTML}${paymentsHTML}
+                <div class="inv-footer">Thank you for your business! &nbsp;·&nbsp; Generated by InvoicePro</div>`;
+                break;
+
+            case 2: paper.innerHTML = `
+                <div class="inv-header">
+                    <div class="inv-brand"><h1>${bName}</h1>${bAddr}${bGst}</div>
+                    <div class="inv-meta">
+                        <div class="inv-number">${invNum}</div>
+                        <div class="inv-date">Issued: ${this.formatDate(inv.issue_date)}</div>
+                        <div class="inv-date">Due: ${this.formatDate(inv.due_date)}</div>
+                        <div style="margin-top:8px;"><span class="inv-status-badge ${status}">${status}</span></div>
+                    </div>
+                </div>
+                <div class="inv-body-wrap">
+                    <div class="inv-parties">
+                        <div><div class="inv-party-label">Bill To</div>${billToHTML}</div>
+                        <div><div class="inv-party-label">Payment Info</div>${payInfoHTML}</div>
+                    </div>
+                    ${tableHTML}${totalsHTML}${notesHTML}${paymentsHTML}
+                    <div class="inv-footer">Thank you for your business! &nbsp;·&nbsp; Generated by InvoicePro</div>
+                </div>`;
+                break;
+
+            case 3: paper.innerHTML = `
+                <div class="inv-sidebar">
+                    <div class="inv-logo-text">${bName}</div>
+                    <div>
+                        <div class="inv-sidebar-label">Invoice</div>
+                        <div class="inv-sidebar-value" style="font-size:1.1rem;font-weight:700;">${invNum}</div>
+                    </div>
+                    <div>
+                        <div class="inv-sidebar-label">Issued</div>
+                        <div class="inv-sidebar-value">${this.formatDate(inv.issue_date)}</div>
+                    </div>
+                    <div>
+                        <div class="inv-sidebar-label">Due Date</div>
+                        <div class="inv-sidebar-value">${this.formatDate(inv.due_date)}</div>
+                    </div>
+                    <div>
+                        <div class="inv-sidebar-label">Status</div>
+                        <div style="margin-top:4px;"><span class="inv-status-badge ${status}">${status}</span></div>
+                    </div>
+                    ${bAddr ? `<div><div class="inv-sidebar-label">Address</div><div class="inv-sidebar-value">${this.escapeHtml(business.address || '')}</div></div>` : ''}
+                    ${bGst ? `<div><div class="inv-sidebar-label">GST</div><div class="inv-sidebar-value">${this.escapeHtml(business.gst_number || '')}</div></div>` : ''}
+                </div>
+                <div class="inv-main">
+                    <div class="inv-header">
+                        <div class="inv-number">INVOICE</div>
+                        <div style="font-size:12px;color:#94a3b8;">${this.formatDate(inv.issue_date)}</div>
+                    </div>
+                    <div class="inv-parties">
+                        <div><div class="inv-party-label">Bill To</div>${billToHTML}</div>
+                        <div><div class="inv-party-label">Payment Info</div>${payInfoHTML}</div>
+                    </div>
+                    ${tableHTML}${totalsHTML}${notesHTML}${paymentsHTML}
+                    <div class="inv-footer">Thank you for your business! &nbsp;·&nbsp; Generated by InvoicePro</div>
+                </div>`;
+                break;
+
+            case 4: paper.innerHTML = `
+                <div class="inv-topbar"></div>
+                <div class="inv-header">
+                    <div class="inv-brand"><h1>${bName}</h1>${bAddr}${bGst}</div>
+                    <div class="inv-meta">
+                        <div class="inv-invoice-badge">INVOICE</div>
+                        <div class="inv-number">${invNum}</div>
+                        <div class="inv-date">Issued: ${this.formatDate(inv.issue_date)}</div>
+                        <div class="inv-date">Due: ${this.formatDate(inv.due_date)}</div>
+                        <div style="margin-top:8px;"><span class="inv-status-badge ${status}">${status}</span></div>
+                    </div>
+                </div>
+                <div class="inv-body-wrap">
+                    <div class="inv-parties">
+                        <div><div class="inv-party-label">Bill To</div>${billToHTML}</div>
+                        <div><div class="inv-party-label">Payment Info</div>${payInfoHTML}</div>
+                    </div>
+                    ${tableHTML}${totalsHTML}${notesHTML}${paymentsHTML}
+                </div>
+                <div class="inv-bottombar">Thank you for your business! &nbsp;·&nbsp; Generated by InvoicePro</div>`;
+                break;
+
+            case 5: paper.innerHTML = `
+                <div class="inv-header">
+                    <div class="inv-header-inner">
+                        <div class="inv-brand"><h1>${bName}</h1>${bAddr}${bGst}</div>
+                        <div class="inv-meta">
+                            <div class="inv-number">${invNum}</div>
+                            <div class="inv-date">Issued: ${this.formatDate(inv.issue_date)}</div>
+                            <div class="inv-date">Due: ${this.formatDate(inv.due_date)}</div>
+                            <div style="margin-top:8px;"><span class="inv-status-badge ${status}">${status}</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="inv-body-wrap">
+                    <div class="inv-parties">
+                        <div class="inv-party-box"><div class="inv-party-label">Bill To</div>${billToHTML}</div>
+                        <div class="inv-party-box"><div class="inv-party-label">Payment Info</div>${payInfoHTML}</div>
+                    </div>
+                    ${tableHTML}${totalsHTML}${notesHTML}${paymentsHTML}
+                    <div class="inv-footer">Thank you for your business! &nbsp;·&nbsp; Generated by InvoicePro</div>
+                </div>`;
+                break;
+
+            case 6: paper.innerHTML = `
+                <div class="inv-header">
+                    <div class="inv-brand"><h1><span>${bName.charAt(0)}</span>${bName.slice(1)}</h1>${bAddr}${bGst}</div>
+                    <div class="inv-meta">
+                        <div class="inv-invoice-label">Invoice</div>
+                        <div class="inv-number">${invNum}</div>
+                        <div class="inv-date">Issued: ${this.formatDate(inv.issue_date)}</div>
+                        <div class="inv-date">Due: ${this.formatDate(inv.due_date)}</div>
+                        <div style="margin-top:10px;"><span class="inv-status-badge ${status}">${status}</span></div>
+                    </div>
+                </div>
+                <div class="inv-parties">
+                    <div><div class="inv-party-label">Bill To</div>${billToHTML}</div>
+                    <div><div class="inv-party-label">Payment Info</div>${payInfoHTML}</div>
+                </div>
+                ${tableHTML}${totalsHTML}${notesHTML}${paymentsHTML}
+                <div class="inv-footer">Thank you for your business. &nbsp;·&nbsp; Generated by InvoicePro</div>`;
+                break;
+
+            case 7: paper.innerHTML = `
+                <div class="inv-header">
+                    <div class="inv-brand"><h1>${bName}</h1>${bAddr}${bGst}</div>
+                    <div class="inv-meta">
+                        <div class="inv-stamp-box">
+                            <div class="inv-stamp-title">Invoice</div>
+                            <div class="inv-number">${invNum}</div>
+                            <div class="inv-date">Issued: ${this.formatDate(inv.issue_date)}</div>
+                            <div class="inv-date">Due: ${this.formatDate(inv.due_date)}</div>
+                        </div>
+                        <div style="margin-top:8px;text-align:right;"><span class="inv-status-badge ${status}">${status}</span></div>
+                    </div>
+                </div>
+                <div class="inv-parties">
+                    <div><div class="inv-party-label">Bill To</div>${billToHTML}</div>
+                    <div><div class="inv-party-label">Payment Info</div>${payInfoHTML}</div>
+                </div>
+                ${tableHTML}${totalsHTML}${notesHTML}${paymentsHTML}
+                <div class="inv-footer">~ Thank you for your business ~ Generated by InvoicePro ~</div>`;
+                break;
+
+            case 8: paper.innerHTML = `
+                <div class="inv-header">
+                    <div class="inv-brand"><h1>${bName}</h1>${bAddr}${bGst}</div>
+                    <div class="inv-meta">
+                        <div class="inv-number">${invNum}</div>
+                        <div class="inv-date">Issued: ${this.formatDate(inv.issue_date)}</div>
+                        <div class="inv-date">Due: ${this.formatDate(inv.due_date)}</div>
+                        <div style="margin-top:8px;"><span class="inv-status-badge ${status}">${status}</span></div>
+                    </div>
+                </div>
+                <div class="inv-body-wrap">
+                    <div class="inv-parties">
+                        <div class="inv-party-box"><div class="inv-party-label">Bill To</div>${billToHTML}</div>
+                        <div class="inv-party-box"><div class="inv-party-label">Payment Info</div>${payInfoHTML}</div>
+                    </div>
+                    ${tableHTML}${totalsHTML}${notesHTML}${paymentsHTML}
+                </div>
+                <div class="inv-footer">Thank you for your business &nbsp;·&nbsp; Generated by InvoicePro</div>`;
+                break;
+
+            case 9: paper.innerHTML = `
+                <div class="inv-header">
+                    <div class="inv-brand"><h1>${bName}</h1>${bAddr}${bGst}</div>
+                    <div class="inv-meta">
+                        <div class="inv-number">${invNum}</div>
+                        <div class="inv-date">Issued: ${this.formatDate(inv.issue_date)}</div>
+                        <div class="inv-date">Due: ${this.formatDate(inv.due_date)}</div>
+                        <div style="margin-top:8px;"><span class="inv-status-badge ${status}">${status}</span></div>
+                    </div>
+                </div>
+                <div class="inv-body-wrap">
+                    <div class="inv-divider"></div>
+                    <div class="inv-parties">
+                        <div><div class="inv-party-label">Bill To</div>${billToHTML}</div>
+                        <div><div class="inv-party-label">Payment Info</div>${payInfoHTML}</div>
+                    </div>
+                    <div class="inv-divider"></div>
+                    ${tableHTML}${totalsHTML}${notesHTML}${paymentsHTML}
+                </div>
+                <div class="inv-footer">Thank you for your business &nbsp;·&nbsp; Generated by InvoicePro</div>`;
+                break;
+
+            case 10: paper.innerHTML = `
+                <div class="inv-header">
+                    <div class="inv-brand"><h1>${bName}</h1>${bAddr}${bGst}</div>
+                    <div class="inv-meta">
+                        <div class="inv-number-chip">${invNum}</div>
+                        <div class="inv-date">Issued: ${this.formatDate(inv.issue_date)}</div>
+                        <div class="inv-date">Due: ${this.formatDate(inv.due_date)}</div>
+                        <div style="margin-top:8px;"><span class="inv-status-badge ${status}">${status}</span></div>
+                    </div>
+                </div>
+                <div class="inv-body-wrap">
+                    <div class="inv-parties">
+                        <div class="inv-party-card"><div class="inv-party-label">Bill To</div>${billToHTML}</div>
+                        <div class="inv-party-card"><div class="inv-party-label">Payment Info</div>${payInfoHTML}</div>
+                    </div>
+                    ${tableHTML}${totalsHTML}${notesHTML}${paymentsHTML}
+                </div>
+                <div class="inv-footer">Thank you for your business &nbsp;·&nbsp; Generated by InvoicePro</div>`;
+                break;
+
+            default: paper.innerHTML = `<div style="padding:48px;text-align:center;color:#94a3b8;">Template not found</div>`;
         }
     }
 
@@ -1326,16 +1631,16 @@ class UIManager {
 
             if (result.success) {
                 this.showToast('success', 'Status Updated', `Invoice status changed to ${newStatus}.`);
-                // Update local data
-                if (this._currentPreviewInvoice && this._currentPreviewInvoice.id == id) {
-                    this._currentPreviewInvoice.status = newStatus;
-                    // Re-render preview to reflect status (optional, badge update is enough)
-                    const badge = document.querySelector('.invoice-preview-paper .inv-status-badge');
-                    if (badge) {
-                        badge.className = `inv-status-badge ${newStatus}`;
-                        badge.textContent = newStatus;
-                    }
-                }
+                  // Update local data
+                  if (this._currentPreviewInvoice && this._currentPreviewInvoice.id == id) {
+                      this._currentPreviewInvoice.status = newStatus;
+                      // Update preview data and re-render to reflect new status
+                      if (this._previewData) {
+                          this._previewData.status = newStatus;
+                          this._previewData.inv.status = newStatus;
+                          this._renderInvoicePreview();
+                      }
+                  }
                 // Refresh list
                 await this.loadInvoices();
             } else {

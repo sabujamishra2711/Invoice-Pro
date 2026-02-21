@@ -10,8 +10,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
         rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-    <link href="styles/main.css?v=1.8" rel="stylesheet">
-    <link href="styles/extra.css?v=1.8" rel="stylesheet">
+    <link href="styles/main.css?v=2.0" rel="stylesheet">
+    <link href="styles/extra.css?v=2.0" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 
@@ -632,6 +632,43 @@
                                     <option value="GBP">GBP (£) — British Pound</option>
                                 </select>
                             </div>
+                            <!-- Invoice Appearance -->
+                            <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border-color);">
+                                <h4 style="font-size:0.9rem;font-weight:700;color:var(--text-primary);margin-bottom:16px;">Invoice Appearance</h4>
+                                <div class="form-group">
+                                    <label class="form-label">Default Template</label>
+                                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;" id="settings-tpl-list">
+                                        <button class="inv-tpl-btn settings-tpl-btn active" data-tpl="1">Classic</button>
+                                        <button class="inv-tpl-btn settings-tpl-btn" data-tpl="2">Bold Header</button>
+                                        <button class="inv-tpl-btn settings-tpl-btn" data-tpl="3">Side Panel</button>
+                                        <button class="inv-tpl-btn settings-tpl-btn" data-tpl="4">Corporate</button>
+                                        <button class="inv-tpl-btn settings-tpl-btn" data-tpl="5">Gradient</button>
+                                        <button class="inv-tpl-btn settings-tpl-btn" data-tpl="6">Minimal</button>
+                                        <button class="inv-tpl-btn settings-tpl-btn" data-tpl="7">Retro</button>
+                                        <button class="inv-tpl-btn settings-tpl-btn" data-tpl="8">Dark Tech</button>
+                                        <button class="inv-tpl-btn settings-tpl-btn" data-tpl="9">Luxury</button>
+                                        <button class="inv-tpl-btn settings-tpl-btn" data-tpl="10">Pastel</button>
+                                    </div>
+                                </div>
+                                <div class="form-group" style="margin-top:14px;">
+                                    <label class="form-label">Accent Color</label>
+                                    <div style="display:flex;align-items:center;gap:10px;margin-top:6px;flex-wrap:wrap;">
+                                        <div style="display:flex;gap:6px;">
+                                            <div class="inv-color-swatch settings-color-swatch" data-color="#6366f1" style="background:#6366f1;" title="Indigo"></div>
+                                            <div class="inv-color-swatch settings-color-swatch" data-color="#0ea5e9" style="background:#0ea5e9;" title="Sky Blue"></div>
+                                            <div class="inv-color-swatch settings-color-swatch" data-color="#10b981" style="background:#10b981;" title="Emerald"></div>
+                                            <div class="inv-color-swatch settings-color-swatch" data-color="#f59e0b" style="background:#f59e0b;" title="Amber"></div>
+                                            <div class="inv-color-swatch settings-color-swatch" data-color="#ef4444" style="background:#ef4444;" title="Red"></div>
+                                            <div class="inv-color-swatch settings-color-swatch" data-color="#ec4899" style="background:#ec4899;" title="Pink"></div>
+                                            <div class="inv-color-swatch settings-color-swatch" data-color="#8b5cf6" style="background:#8b5cf6;" title="Violet"></div>
+                                            <div class="inv-color-swatch settings-color-swatch" data-color="#d4af37" style="background:#d4af37;" title="Gold"></div>
+                                            <div class="inv-color-swatch settings-color-swatch" data-color="#0f172a" style="background:#0f172a;" title="Slate"></div>
+                                        </div>
+                                        <input type="color" class="inv-color-picker" id="settings-accent-picker" value="#6366f1" title="Custom color">
+                                        <span style="font-size:0.78rem;color:var(--text-tertiary);" id="settings-color-label">#6366f1</span>
+                                    </div>
+                                </div>
+                            </div>
                             <button type="button" class="btn btn-primary" id="save-invoice-settings">
                                 <i class="fas fa-check"></i> Save
                             </button>
@@ -830,6 +867,37 @@
                 </div>
             </div>
             <div class="modal-body" style="padding:0;background:#e2e8f0;">
+                <!-- Template Toolbar -->
+                <div class="inv-template-toolbar">
+                    <label>Template:</label>
+                    <div class="inv-template-list">
+                        <button class="inv-tpl-btn active" data-tpl="1">Classic</button>
+                        <button class="inv-tpl-btn" data-tpl="2">Bold Header</button>
+                        <button class="inv-tpl-btn" data-tpl="3">Side Panel</button>
+                        <button class="inv-tpl-btn" data-tpl="4">Corporate</button>
+                        <button class="inv-tpl-btn" data-tpl="5">Gradient</button>
+                        <button class="inv-tpl-btn" data-tpl="6">Minimal</button>
+                        <button class="inv-tpl-btn" data-tpl="7">Retro</button>
+                        <button class="inv-tpl-btn" data-tpl="8">Dark Tech</button>
+                        <button class="inv-tpl-btn" data-tpl="9">Luxury</button>
+                        <button class="inv-tpl-btn" data-tpl="10">Pastel</button>
+                    </div>
+                    <div class="inv-color-group">
+                        <label>Color:</label>
+                        <div class="inv-color-presets">
+                            <div class="inv-color-swatch active" data-color="#6366f1" style="background:#6366f1;" title="Indigo"></div>
+                            <div class="inv-color-swatch" data-color="#0ea5e9" style="background:#0ea5e9;" title="Sky Blue"></div>
+                            <div class="inv-color-swatch" data-color="#10b981" style="background:#10b981;" title="Emerald"></div>
+                            <div class="inv-color-swatch" data-color="#f59e0b" style="background:#f59e0b;" title="Amber"></div>
+                            <div class="inv-color-swatch" data-color="#ef4444" style="background:#ef4444;" title="Red"></div>
+                            <div class="inv-color-swatch" data-color="#ec4899" style="background:#ec4899;" title="Pink"></div>
+                            <div class="inv-color-swatch" data-color="#8b5cf6" style="background:#8b5cf6;" title="Violet"></div>
+                            <div class="inv-color-swatch" data-color="#d4af37" style="background:#d4af37;" title="Gold"></div>
+                            <div class="inv-color-swatch" data-color="#0f172a" style="background:#0f172a;" title="Slate"></div>
+                        </div>
+                        <input type="color" class="inv-color-picker" id="inv-accent-picker" value="#6366f1" title="Custom color">
+                    </div>
+                </div>
                 <div id="invoice-preview-content" class="invoice-preview-paper">
                     <!-- Dynamically populated -->
                 </div>
@@ -866,11 +934,11 @@
     </div>
 
     <!-- Scripts -->
-    <script src="js/config.js?v=1.8"></script>
-    <script src="js/auth.js?v=1.8"></script>
-    <script src="js/api.js?v=1.8"></script>
-    <script src="js/ui.js?v=1.8"></script>
-    <script src="js/main.js?v=1.8"></script>
+    <script src="js/config.js?v=2.0"></script>
+    <script src="js/auth.js?v=2.0"></script>
+    <script src="js/api.js?v=2.0"></script>
+    <script src="js/ui.js?v=2.0"></script>
+    <script src="js/main.js?v=2.0"></script>
 </body>
 
 </html>

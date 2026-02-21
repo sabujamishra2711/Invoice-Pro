@@ -61,7 +61,8 @@
     /* 2. Hide modal chrome (header/footer/close buttons) */
     .modal-header,
     .modal-footer,
-    .modal-close {
+    .modal-close,
+    .inv-template-toolbar {
         display: none !important;
     }
 
@@ -99,16 +100,15 @@
         max-height: none !important;
     }
 
-    /* 6. The actual invoice paper — show it full-page */
-    .invoice-preview-paper {
+      /* 6. The actual invoice paper — show it full-page (all template classes) */
+    .invoice-preview-paper,
+    .inv-tpl-1, .inv-tpl-2, .inv-tpl-3, .inv-tpl-4, .inv-tpl-5,
+    .inv-tpl-6, .inv-tpl-7, .inv-tpl-8, .inv-tpl-9, .inv-tpl-10 {
         position: static !important;
         width: 100% !important;
         height: auto !important;
         margin: 0 !important;
-        padding: 20px !important;
         box-shadow: none !important;
-        background: #fff !important;
-        color: #000 !important;
         visibility: visible !important;
         overflow: visible !important;
         -webkit-print-color-adjust: exact !important;
@@ -118,8 +118,10 @@
     }
 
     /* 7. Ensure all text inside the invoice is visible */
-    .invoice-preview-paper,
-    .invoice-preview-paper * {
+    .invoice-preview-paper, .inv-tpl-1, .inv-tpl-2, .inv-tpl-3, .inv-tpl-4, .inv-tpl-5,
+    .inv-tpl-6, .inv-tpl-7, .inv-tpl-8, .inv-tpl-9, .inv-tpl-10,
+    .invoice-preview-paper *, .inv-tpl-1 *, .inv-tpl-2 *, .inv-tpl-3 *, .inv-tpl-4 *, .inv-tpl-5 *,
+    .inv-tpl-6 *, .inv-tpl-7 *, .inv-tpl-8 *, .inv-tpl-9 *, .inv-tpl-10 * {
         visibility: visible !important;
         print-color-adjust: exact !important;
     }
