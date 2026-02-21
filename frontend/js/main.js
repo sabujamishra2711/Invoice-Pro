@@ -121,6 +121,28 @@ document.addEventListener('DOMContentLoaded', () => {
         uiManager.exportPaymentsCSV();
     });
 
+    // ── Client Buttons ──
+    document.getElementById('create-client-btn')?.addEventListener('click', () => {
+        uiManager.showClientModal();
+    });
+
+    document.getElementById('add-first-client-btn')?.addEventListener('click', () => {
+        uiManager.showClientModal();
+    });
+
+    document.getElementById('save-client-btn')?.addEventListener('click', () => {
+        uiManager.saveClient();
+    });
+
+    // ── Payment Buttons ──
+    document.getElementById('record-payment-btn')?.addEventListener('click', () => {
+        uiManager.showPaymentModal();
+    });
+
+    document.getElementById('save-payment-btn')?.addEventListener('click', () => {
+        uiManager.savePayment();
+    });
+
     // ── Invoice Preview Actions ──
     document.getElementById('preview-print-btn')?.addEventListener('click', () => {
         uiManager.printInvoice();
@@ -274,6 +296,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.location.hash === '#settings') syncSettingsAppearanceUI();
     });
     if (window.location.hash === '#settings') syncSettingsAppearanceUI();
+
+    // ── Settings Save Buttons ──
+    document.getElementById('save-business-settings-btn')?.addEventListener('click', () => {
+        uiManager.saveSettings();
+    });
+
+    document.getElementById('save-tax-settings')?.addEventListener('click', () => {
+        uiManager.saveSettings();
+    });
 
     // ── Save Invoice Settings (template + color + default currency) ──
     document.getElementById('save-invoice-settings')?.addEventListener('click', () => {
