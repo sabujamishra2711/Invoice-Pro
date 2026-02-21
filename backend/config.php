@@ -8,8 +8,10 @@ define('DB_USER', 'root');
 define('DB_PASS', '');
 
 // Firebase configuration
-define('FIREBASE_PROJECT_ID', 'your-firebase-project-id');
-define('FIREBASE_API_KEY', 'your-firebase-api-key');
+define('FIREBASE_PROJECT_ID', getenv('FIREBASE_PROJECT_ID') ?: 'your-firebase-project-id');
+define('FIREBASE_API_KEY',    getenv('FIREBASE_API_KEY')    ?: 'your-firebase-api-key');
+define('FIREBASE_AUTH_DOMAIN', getenv('FIREBASE_AUTH_DOMAIN') ?: '');
+define('FIREBASE_APP_ID',    getenv('FIREBASE_APP_ID')     ?: '');
 
 // Get the origin from the request for dynamic configuration
 $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : (isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'http://localhost');

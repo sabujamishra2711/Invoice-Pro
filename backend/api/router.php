@@ -6,7 +6,14 @@ function routeRequest($method, $route, $input)
     // Route mapping
     $routes = [
         // Auth routes
-        'auth.login' => ['POST', 'AuthController@login'],
+        'auth.login'            => ['POST', 'AuthController@login'],
+        'auth.register'         => ['POST', 'AuthController@register'],
+        'auth.google'           => ['POST', 'AuthController@googleLogin'],
+        'auth.otp.send'         => ['POST', 'AuthController@sendOtp'],
+        'auth.otp.verify'       => ['POST', 'AuthController@verifyOtp'],
+        'auth.reset'            => ['POST', 'AuthController@resetPassword'],
+        'auth.password.change'  => ['POST', 'AuthController@changePassword'],
+        'auth.profile.update'   => ['POST', 'AuthController@updateProfile'],
 
         // Client routes
         'client.list' => ['GET', 'ClientController@list'],

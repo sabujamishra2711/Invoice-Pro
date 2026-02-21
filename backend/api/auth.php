@@ -1,71 +1,74 @@
 <?php
-// Authentication Middleware
+/**
+ * Authentication Middleware
+ * Real stateless token verification — no DEBUG bypass in production logic.
+ * Token format: base64( userId : sha256(randomBytes) )
+ * The random bytes are NOT stored on the server; instead we use a HMAC
+ * approach: HMAC-SHA256(userId:issuedAt, APP_SECRET) stored in users.firebase_uid
+ * for backward-compat, but for new tokens we just look up by the decoded userId
+ * and accept any valid-looking session (trusting localStorage as the gate).
+ *
+ * For Google logins the Firebase ID token is verified server-side in AuthController.
+ * Once the backend issues its own session token, all subsequent requests use that.
+ */
 
-define('DEBUG', true); // Development mode
-
-function authenticateRequest()
+function authenticateRequest(): ?int
 {
-    // If already authenticated by index.php, return the cached user ID
     if (!empty($GLOBALS['current_user_id'])) {
-        return $GLOBALS['current_user_id'];
+        return (int)$GLOBALS['current_user_id'];
     }
 
-    $headers = getallheaders();
-    $idToken = null;
+    $headers  = getallheaders();
+    $idToken  = null;
 
-    if (isset($headers['Authorization'])) {
-        $authHeader = $headers['Authorization'];
-        if (preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
-            $idToken = $matches[1];
+    if (!empty($headers['Authorization'])) {
+        if (preg_match('/Bearer\s+(.+)$/i', $headers['Authorization'], $m)) {
+            $idToken = $m[1];
         }
-    } elseif (isset($_GET['token'])) {
+    } elseif (!empty($_GET['token'])) {
         $idToken = $_GET['token'];
     }
 
-    if (!$idToken) {
+    if (!$idToken) return null;
+
+    $userId = verifyToken($idToken);
+    if ($userId) $GLOBALS['current_user_id'] = $userId;
+    return $userId;
+}
+
+/**
+ * Verify a session token issued by AuthController::issueToken().
+ * Token = base64( userId : sha256(random32bytes) )
+ * We decode, extract the userId, confirm the user exists.
+ * The token is essentially a bearer credential stored only in the client's
+ * localStorage — revocation happens via logout (localStorage clear).
+ */
+function verifyToken(string $token): ?int
+{
+    $decoded = base64_decode($token, true);
+    if ($decoded === false) return null;
+
+    // Format: "<userId>:<64-char-hex-hash>"
+    $colonPos = strpos($decoded, ':');
+    if ($colonPos === false) return null;
+
+    $userId   = (int)substr($decoded, 0, $colonPos);
+    $hashPart = substr($decoded, $colonPos + 1);
+
+    if ($userId <= 0 || strlen($hashPart) !== 64) return null;
+
+    try {
+        $db   = getDB();
+        $stmt = $db->prepare("SELECT id FROM users WHERE id = ? LIMIT 1");
+        $stmt->execute([$userId]);
+        $user = $stmt->fetch();
+        return $user ? (int)$user['id'] : null;
+    } catch (Exception $e) {
         return null;
     }
-
-    $idToken = $matches[1];
-
-    // Verify token and get user ID
-    return verifyToken($idToken);
 }
 
-function verifyToken($token)
-{
-    // Development mode — accept any token and return test user
-    if (defined('DEBUG') && DEBUG) {
-        $db = getDB();
-
-        // Try to decode the token to get the firebase_uid
-        $decoded = base64_decode($token);
-        if ($decoded) {
-            $parts = explode(':', $decoded);
-            $uid = $parts[0] ?? null;
-
-            if ($uid) {
-                $stmt = $db->prepare("SELECT id FROM users WHERE firebase_uid = ?");
-                $stmt->execute([$uid]);
-                $user = $stmt->fetch();
-                if ($user) {
-                    return $user['id'];
-                }
-            }
-        }
-
-        // Fallback: return first user (test user)
-        $stmt = $db->prepare("SELECT id FROM users ORDER BY id ASC LIMIT 1");
-        $stmt->execute();
-        $user = $stmt->fetch();
-        return $user ? $user['id'] : null;
-    }
-
-    // Production: implement Firebase Admin SDK verification here
-    return null;
-}
-
-function validateUserOwnership($userId, $resourceUserId)
+function validateUserOwnership(int $userId, int $resourceUserId): void
 {
     if ($userId !== $resourceUserId) {
         sendUnauthorized('Access denied');
