@@ -81,7 +81,7 @@ try {
 
     // Send response
     if (isset($result['success']) && $result['success']) {
-        sendSuccess($result['data'] ?? [], $result['message'] ?? 'Success');
+        sendSuccess($result['data'] ?? [], $result['message'] ?? 'Success', $result['http_code'] ?? 200);
     } else {
         $errorCode = $result['error_code'] ?? 'UNKNOWN_ERROR';
         $message = $result['message'] ?? 'An error occurred';
