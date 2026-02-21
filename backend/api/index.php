@@ -64,7 +64,11 @@ try {
     }
 
     // Auth routes don't require token or CSRF
-        $publicRoutes = ['auth.login', 'auth.register', 'razorpay.pricing'];
+        $publicRoutes = [
+        'auth.login', 'auth.register', 'razorpay.pricing',
+        // Public invoice viewing & payment — no auth needed
+        'public.invoice.get', 'public.invoice.order', 'public.invoice.pay',
+    ];
     $isPublicRoute = in_array($route, $publicRoutes);
 
     // Authenticate for non-public routes

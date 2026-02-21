@@ -79,8 +79,15 @@ function routeRequest($method, $route, $input)
           'recurring.generate'=> ['POST',   'RecurringInvoiceController@generateNow'],
           'recurring.process' => ['POST',   'RecurringInvoiceController@processDue'],
 
-          // Expense routes
-          'expense.list'            => ['GET',    'ExpenseController@list'],
+           // Public invoice routes (no auth on get/order/pay)
+           'public.invoice.get'            => ['GET',    'PublicInvoiceController@getByToken'],
+           'public.invoice.order'          => ['POST',   'PublicInvoiceController@createOrder'],
+           'public.invoice.pay'            => ['POST',   'PublicInvoiceController@verifyAndPay'],
+           'public.invoice.token.generate' => ['POST',   'PublicInvoiceController@generateToken'],
+           'public.invoice.token.revoke'   => ['DELETE', 'PublicInvoiceController@revokeToken'],
+
+           // Expense routes
+           'expense.list'            => ['GET',    'ExpenseController@list'],
           'expense.get'             => ['GET',    'ExpenseController@get'],
           'expense.create'          => ['POST',   'ExpenseController@create'],
           'expense.update'          => ['PUT',    'ExpenseController@update'],
