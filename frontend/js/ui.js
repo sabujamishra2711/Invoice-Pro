@@ -1483,30 +1483,93 @@ class UIManager {
     }
 
     printInvoice() {
-        window.print();
+        const paper = document.getElementById('invoice-preview-content');
+        if (!paper) return;
+
+        // Collect all stylesheets from the current page
+        const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+            .map(l => `<link rel="stylesheet" href="${l.href}">`)
+            .join('\n');
+        const inlineStyles = Array.from(document.querySelectorAll('style'))
+            .map(s => `<style>${s.textContent}</style>`)
+            .join('\n');
+
+        const iframe = document.createElement('iframe');
+        iframe.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:0;';
+        document.body.appendChild(iframe);
+
+        const iDoc = iframe.contentDocument || iframe.contentWindow.document;
+        iDoc.open();
+        iDoc.write(`<!DOCTYPE html><html><head>
+            <meta charset="UTF-8">
+            <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+            ${styleLinks}
+            ${inlineStyles}
+            <style>
+                @page { size: A4 portrait; margin: 12mm 12mm 12mm 12mm; }
+                body { margin:0; padding:0; background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+                .inv-template-toolbar, .modal-header, .modal-footer { display:none!important; }
+            </style>
+        </head><body>${paper.outerHTML}</body></html>`);
+        iDoc.close();
+
+        iframe.contentWindow.focus();
+        setTimeout(() => {
+            iframe.contentWindow.print();
+            setTimeout(() => document.body.removeChild(iframe), 1000);
+        }, 600);
     }
 
     async downloadInvoicePDF() {
+        const paper = document.getElementById('invoice-preview-content');
         const inv = this._currentPreviewInvoice;
-        if (!inv) return;
+        if (!paper || !inv) return;
+
+        if (typeof html2pdf === 'undefined') {
+            this.showToast('error', 'Error', 'PDF library not loaded. Please check your connection.');
+            return;
+        }
+
+        const btn = document.getElementById('preview-download-btn');
+        const origHTML = btn ? btn.innerHTML : '';
+        if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+
+        // Clone and apply accent color inline so html2pdf captures it
+        const clone = paper.cloneNode(true);
+        clone.style.cssText = `
+            width: 794px;
+            padding: 36px 40px;
+            background: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            --inv-accent: ${this._currentAccentColor || '#6366f1'};
+        `;
+        // Inline the CSS variable since html2pdf doesn't resolve CSS vars in canvas
+        const accent = this._currentAccentColor || '#6366f1';
+        clone.querySelectorAll('[style]').forEach(el => {
+            el.style.cssText = el.style.cssText
+                .replace(/var\(--inv-accent\)/g, accent);
+        });
+
+        const filename = `${inv.invoice_number || 'invoice'}.pdf`;
+
+        const opt = {
+            margin:       [10, 10, 10, 10],
+            filename:     filename,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+            jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+            pagebreak:    { mode: 'avoid-all' }
+        };
 
         try {
-            const url = `${API_BASE_URL}/index.php?route=invoice.pdf&id=${inv.id}`;
-            const token = localStorage.getItem('auth_token') || '';
-            const response = await fetch(url, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (response.ok) {
-                const blob = await response.blob();
-                this._downloadFile(blob, `${inv.invoice_number || 'invoice'}.pdf`);
-                this.showToast('success', 'Downloaded', 'PDF has been downloaded.');
-            } else {
-                // Fallback: print the preview
-                this.showToast('info', 'Tip', 'PDF service unavailable. Use the Print button to save as PDF.');
-            }
-        } catch {
-            this.showToast('info', 'Tip', 'PDF service unavailable. Use the Print button to save as PDF.');
+            await html2pdf().set(opt).from(clone).save();
+            this.showToast('success', 'Downloaded', `${filename} saved.`);
+        } catch (err) {
+            console.error('PDF error:', err);
+            this.showToast('error', 'PDF Error', 'Could not generate PDF. Try the Print button instead.');
+        } finally {
+            if (btn) btn.innerHTML = origHTML;
         }
     }
 
