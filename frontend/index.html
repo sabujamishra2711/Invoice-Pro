@@ -640,18 +640,20 @@
 
             <!-- ════════ Recurring Invoices View ════════ -->
             <div id="recurring-view" class="view">
-                <div class="page-header">
-                    <div>
-                        <h2 class="page-header-title">Recurring Invoices</h2>
-                        <p class="page-header-subtitle">Set up automatic invoice generation on a schedule</p>
-                    </div>
-                    <button class="btn btn-primary" id="create-recurring-btn">
-                        <i class="fas fa-plus"></i> New Recurring Invoice
-                    </button>
-                </div>
-
                 <!-- List -->
                 <div id="recurring-list-section">
+                    <div class="page-header">
+                        <div>
+                            <h2 class="page-header-title">Recurring Invoices</h2>
+                            <p class="page-header-subtitle">Set up automatic invoice generation on a schedule</p>
+                        </div>
+                        <div style="display:flex;gap:10px;">
+                            <button class="btn btn-primary" id="create-recurring-btn">
+                                <i class="fas fa-plus"></i> New Recurring Invoice
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="card">
                         <div class="card-body" style="padding:0;">
                             <table class="data-table" id="recurring-table">
@@ -673,7 +675,7 @@
                                             <div class="empty-state-icon"><i class="fas fa-redo-alt"></i></div>
                                             <div class="empty-state-title">No recurring invoices</div>
                                             <div class="empty-state-text">Create a recurring invoice to auto-generate invoices on a schedule.</div>
-                                            <button class="btn btn-primary" onclick="recurringManager.showForm()"><i class="fas fa-plus"></i> Create</button>
+                                            <button class="btn btn-primary" onclick="recurringManager.showForm()"><i class="fas fa-plus"></i> Create Recurring Invoice</button>
                                         </div>
                                     </td></tr>
                                 </tbody>

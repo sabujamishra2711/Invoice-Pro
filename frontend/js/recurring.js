@@ -111,15 +111,14 @@ class RecurringManager {
         }
         this._calcTotals();
 
+        this._editingId = data ? data.id : null;
         document.getElementById('recurring-list-section').style.display = 'none';
         document.getElementById('recurring-form-section').style.display = '';
-        document.getElementById('create-recurring-btn').style.display   = 'none';
     }
 
     hideForm() {
         document.getElementById('recurring-form-section').style.display = 'none';
         document.getElementById('recurring-list-section').style.display = '';
-        document.getElementById('create-recurring-btn').style.display   = '';
         this._editingId = null;
     }
 
