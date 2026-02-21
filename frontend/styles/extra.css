@@ -1,0 +1,133 @@
+/* ── Extra Styles for InvoicePro ── */
+
+/* Dropdown Container */
+.dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-container .dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 140px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-lg);
+    z-index: 1000;
+    display: none;
+    /* Hidden by default */
+    overflow: hidden;
+}
+
+[data-theme="dark"] .dropdown-menu {
+    background: #1e1b4b;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.dropdown-menu.show {
+    display: block !important;
+    animation: fadeScaleIn 0.2s cubic-bezier(0.2, 0, 0, 1);
+}
+
+@keyframes fadeScaleIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* ══════════════════════════════════
+   Print Overrides — SINGLE AUTHORITATIVE BLOCK
+   This overrides any earlier @media print rules from main.css
+   ══════════════════════════════════ */
+@media print {
+
+    /* 1. Hide the entire page layout */
+    body>.sidebar,
+    body>.topbar,
+    body>.main-content,
+    body>.toast-container,
+    body>.loading-overlay {
+        display: none !important;
+    }
+
+    /* 2. Hide modal chrome (header/footer/close buttons) */
+    .modal-header,
+    .modal-footer,
+    .modal-close {
+        display: none !important;
+    }
+
+    /* 3. Make the modal overlay act as a plain container */
+    #invoice-preview-modal.active {
+        position: static !important;
+        display: block !important;
+        background: none !important;
+        overflow: visible !important;
+        z-index: auto !important;
+        width: 100% !important;
+        height: auto !important;
+    }
+
+    /* 4. Make the modal container a plain wrapper */
+    #invoice-preview-modal .modal-container {
+        position: static !important;
+        max-width: none !important;
+        width: 100% !important;
+        max-height: none !important;
+        height: auto !important;
+        box-shadow: none !important;
+        background: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        transform: none !important;
+    }
+
+    /* 5. Make the modal body a plain wrapper */
+    #invoice-preview-modal .modal-body {
+        padding: 0 !important;
+        background: none !important;
+        overflow: visible !important;
+        max-height: none !important;
+    }
+
+    /* 6. The actual invoice paper — show it full-page */
+    .invoice-preview-paper {
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 20px !important;
+        box-shadow: none !important;
+        background: #fff !important;
+        color: #000 !important;
+        visibility: visible !important;
+        overflow: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        page-break-inside: avoid;
+        page-break-after: avoid;
+    }
+
+    /* 7. Ensure all text inside the invoice is visible */
+    .invoice-preview-paper,
+    .invoice-preview-paper * {
+        visibility: visible !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* 8. Reset body for printing */
+    body {
+        background: #fff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+}
