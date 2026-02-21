@@ -344,36 +344,81 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // ── Logo Upload — save base64 to localStorage, show preview ──
-    document.getElementById('logo-upload')?.addEventListener('change', (e) => {
+    // ── Logo Upload — POST multipart to backend ──
+    document.getElementById('logo-upload')?.addEventListener('change', async (e) => {
         const file = e.target.files[0];
         if (!file) return;
         if (file.size > 2 * 1024 * 1024) {
             uiManager.showToast('error', 'Too Large', 'Logo must be under 2 MB.');
+            e.target.value = '';
             return;
         }
-        const reader = new FileReader();
-        reader.onload = (ev) => {
-            const dataUrl = ev.target.result;
-            localStorage.setItem('business_logo', dataUrl);
-            // Show preview in settings
-            const preview = document.getElementById('logo-preview');
-            if (preview) {
-                preview.innerHTML = `<img src="${dataUrl}" style="width:100%;height:100%;object-fit:contain;border-radius:10px;">`;
+
+        const statusEl = document.getElementById('logo-upload-status');
+        const uploadBtn = document.getElementById('logo-upload-btn');
+        if (statusEl) statusEl.textContent = 'Uploading...';
+        if (uploadBtn) { uploadBtn.disabled = true; uploadBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...'; }
+
+        try {
+            const formData = new FormData();
+            formData.append('logo', file);
+
+            const token = localStorage.getItem('auth_token');
+            const response = await fetch(`${api.baseUrl}/index.php?route=settings.logo.upload`, {
+                method: 'POST',
+                headers: token ? { 'Authorization': 'Bearer ' + token } : {},
+                body: formData
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                const logoUrl = result.data?.logo_url;
+                const preview = document.getElementById('logo-preview');
+                if (preview && logoUrl) {
+                    preview.innerHTML = `<img src="${logoUrl}?t=${Date.now()}" style="width:100%;height:100%;object-fit:contain;border-radius:10px;">`;
+                }
+                const removeBtn = document.getElementById('logo-remove-btn');
+                if (removeBtn) removeBtn.style.display = '';
+                // Also cache in localStorage for offline preview
+                const reader = new FileReader();
+                reader.onload = (ev) => localStorage.setItem('business_logo', ev.target.result);
+                reader.readAsDataURL(file);
+                if (statusEl) statusEl.textContent = '';
+                uiManager.showToast('success', 'Logo Uploaded', 'Logo saved and will appear on invoices.');
+            } else {
+                if (statusEl) statusEl.textContent = result.message || 'Upload failed.';
+                uiManager.showToast('error', 'Upload Failed', result.message || 'Could not upload logo.');
             }
-            uiManager.showToast('success', 'Logo Saved', 'Logo will appear on your invoices.');
-        };
-        reader.readAsDataURL(file);
+        } catch (err) {
+            if (statusEl) statusEl.textContent = 'Upload failed.';
+            uiManager.showToast('error', 'Error', err.message || 'Upload failed.');
+        } finally {
+            if (uploadBtn) { uploadBtn.disabled = false; uploadBtn.innerHTML = '<i class="fas fa-upload"></i> Upload Logo'; }
+            e.target.value = '';
+        }
     });
 
-    // Restore logo preview on settings load
-    const savedLogo = localStorage.getItem('business_logo');
-    if (savedLogo) {
-        const preview = document.getElementById('logo-preview');
-        if (preview) {
-            preview.innerHTML = `<img src="${savedLogo}" style="width:100%;height:100%;object-fit:contain;border-radius:10px;">`;
+    // ── Logo Remove ──
+    document.getElementById('logo-remove-btn')?.addEventListener('click', async () => {
+        const removeBtn = document.getElementById('logo-remove-btn');
+        if (removeBtn) { removeBtn.disabled = true; removeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Removing...'; }
+        try {
+            const result = await api.request('settings.logo.delete', 'POST', {});
+            if (result.success) {
+                localStorage.removeItem('business_logo');
+                const preview = document.getElementById('logo-preview');
+                if (preview) preview.innerHTML = '<i class="fas fa-image"></i>';
+                if (removeBtn) removeBtn.style.display = 'none';
+                uiManager.showToast('success', 'Logo Removed', 'Logo has been removed.');
+            } else {
+                uiManager.showToast('error', 'Error', result.message || 'Could not remove logo.');
+            }
+        } catch (err) {
+            uiManager.showToast('error', 'Error', err.message || 'Could not remove logo.');
+        } finally {
+            if (removeBtn) { removeBtn.disabled = false; removeBtn.innerHTML = '<i class="fas fa-trash"></i> Remove'; }
         }
-    }
+    });
 
     console.log('✅ InvoicePro initialized');
 

@@ -179,10 +179,16 @@ class PDFService
         // Company info section
         $html .= '<div class="company-info">';
         if (!empty($invoice['business_logo_path_snapshot'])) {
-            // For object storage, we might need to get a temporary URL for the logo
-            $logoPath = $invoice['business_logo_path_snapshot'];
-            $html .= '<img src="' . $logoPath . '" alt="Logo" style="max-width: 150px; margin-bottom: 10px;"><br>';
-        }
+              $logoFile = LOGO_STORAGE_PATH . basename($invoice['business_logo_path_snapshot']);
+              if (file_exists($logoFile)) {
+                  $logoData   = base64_encode(file_get_contents($logoFile));
+                  $logoMime   = mime_content_type($logoFile) ?: 'image/png';
+                  $logoSrc    = 'data:' . $logoMime . ';base64,' . $logoData;
+              } else {
+                  $logoSrc = LOGO_PUBLIC_URL . basename($invoice['business_logo_path_snapshot']);
+              }
+              $html .= '<img src="' . $logoSrc . '" alt="Logo" style="max-width: 150px; margin-bottom: 10px;"><br>';
+          }
         $html .= '<strong>' . htmlspecialchars($invoice['business_name_snapshot']) . '</strong><br>';
         if (!empty($invoice['business_address_snapshot'])) {
             $html .= nl2br(htmlspecialchars($invoice['business_address_snapshot'])) . '<br>';
@@ -1801,48 +1807,14 @@ class PDFService
         $html .= '<h3>Bill To:</h3>';
         $html .= '<p><strong>' . htmlspecialchars($invoice['client_name_snapshot']) . '</strong></p>';
         if (!empty($invoice['client_company_snapshot'])) {
-            $html .= '<p>' . htmlspecialchars($invoice['client_company_snapshot']) . '
-    public function getPdfForDownload(\, \)
-    {
-        try {
-            // First verify that the user owns this invoice
-            \ = \->db->prepare(\
-SELECT
-id
-pdf_path
-FROM
-invoices
-WHERE
-id
-=
-?
-AND
-user_id
-=
-?
-AND
-deleted_at
-IS
-NULL\);
-            \->execute([\, \]);
-            \ = \->fetch();
-            if (!\) {
-                return ['success' => false, 'error' => 'Invoice not found or access denied'];
-            }
-            if (empty(\['pdf_path'])) {
-                return ['success' => false, 'error' => 'PDF not available for this invoice'];
-            }
-            // Get the PDF content from object storage
-            \ = \->objectStorage->download(\['pdf_path']);
-            if (\ === false) {
-                return ['success' => false, 'error' => 'Failed to retrieve PDF from storage'];
-            }
-            // Create a temporary file
-            \ = tempnam(sys_get_temp_dir(), 'invoice_pdf_');
-            file_put_contents(\, \);
-            return ['success' => true, 'file_path' => \];
-        } catch (Exception \) {
-            return ['success' => false, 'error' => 'Error retrieving PDF: ' . \->getMessage()];
+            $html .= '<p>' . htmlspecialchars($invoice['client_company_snapshot']) . '</p>';
         }
+        if (!empty($invoice['client_address_snapshot'])) {
+            $html .= '<p>' . nl2br(htmlspecialchars($invoice['client_address_snapshot'])) . '</p>';
+        }
+        if (!empty($invoice['client_email_snapshot'])) {
+            $html .= '<p>Email: ' . htmlspecialchars($invoice['client_email_snapshot']) . '</p>';
+        }
+        $html .= '</div>';
     }
 }

@@ -1170,6 +1170,23 @@ class UIManager {
             this._setVal('setting-payment-terms', data.payment_terms);
             this._setVal('setting-tax-rate', data.default_tax);
             this._setVal('setting-invoice-prefix', data.invoice_prefix || 'INV');
+
+            // Show server logo if present
+            const preview   = document.getElementById('logo-preview');
+            const removeBtn = document.getElementById('logo-remove-btn');
+            if (data.logo_url && preview) {
+                preview.innerHTML = `<img src="${data.logo_url}" style="width:100%;height:100%;object-fit:contain;border-radius:10px;">`;
+                if (removeBtn) removeBtn.style.display = '';
+            } else if (preview) {
+                // Fall back to localStorage logo if no server logo
+                const localLogo = localStorage.getItem('business_logo');
+                if (localLogo) {
+                    preview.innerHTML = `<img src="${localLogo}" style="width:100%;height:100%;object-fit:contain;border-radius:10px;">`;
+                } else {
+                    preview.innerHTML = '<i class="fas fa-image"></i>';
+                    if (removeBtn) removeBtn.style.display = 'none';
+                }
+            }
         } catch (err) {
             console.warn('Load settings error:', err);
         }
