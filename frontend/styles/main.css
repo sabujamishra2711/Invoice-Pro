@@ -798,6 +798,9 @@ a:hover {
     background: linear-gradient(135deg, var(--primary), var(--primary-dark));
     color: #fff;
     box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
 .btn-primary:hover {
