@@ -1297,8 +1297,15 @@ class PDFService
         
         $html .= '<div class="company-info">';
         if (!empty($invoice['business_logo_path_snapshot'])) {
-            $logoPath = $invoice['business_logo_path_snapshot'];
-            $html .= '<img src="' . $logoPath . '" alt="Logo" style="max-height: 60px; margin-bottom: 15px;"><br>';
+            $logoFile = LOGO_STORAGE_PATH . basename($invoice['business_logo_path_snapshot']);
+            if (file_exists($logoFile)) {
+                $logoData = base64_encode(file_get_contents($logoFile));
+                $logoMime = mime_content_type($logoFile) ?: 'image/png';
+                $logoSrc  = 'data:' . $logoMime . ';base64,' . $logoData;
+            } else {
+                $logoSrc = LOGO_PUBLIC_URL . basename($invoice['business_logo_path_snapshot']);
+            }
+            $html .= '<img src="' . $logoSrc . '" alt="Logo" style="max-height: 60px; margin-bottom: 15px;"><br>';
         }
         $html .= '<h2>' . htmlspecialchars($invoice['business_name_snapshot']) . '</h2>';
         if (!empty($invoice['business_address_snapshot'])) {
