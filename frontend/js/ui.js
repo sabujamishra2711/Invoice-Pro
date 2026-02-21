@@ -9,6 +9,9 @@ class UIManager {
         this.clientsData = [];
         this.paymentsData = [];
         this.loadingOverlay = document.getElementById('loading-overlay');
+        // Pagination state
+        this._page = { invoices: 1, payments: 1, clients: 1 };
+        this._perPage = 10;
     }
 
     setLoading(show) {
@@ -324,10 +327,18 @@ class UIManager {
                 <div class="empty-state-title">No invoices found</div>
                 <div class="empty-state-text">${filter !== 'all' ? 'No invoices match this filter.' : 'Create your first invoice to start tracking revenue.'}</div>
             </div></td></tr>`;
+            this._renderPagination('invoices-pagination', 0, 1, 1);
             return;
         }
 
-        tbody.innerHTML = filtered.map(inv => `
+        // Clamp page
+        const totalPages = Math.ceil(filtered.length / this._perPage);
+        if (this._page.invoices > totalPages) this._page.invoices = totalPages;
+        const page = this._page.invoices;
+        const start = (page - 1) * this._perPage;
+        const paged = filtered.slice(start, start + this._perPage);
+
+        tbody.innerHTML = paged.map(inv => `
             <tr>
                 <td><span style="font-weight:600;color:var(--primary);cursor:pointer;" onclick="uiManager.previewInvoice(${inv.id})">${this.escapeHtml(inv.invoice_number || '')}</span></td>
                 <td>
@@ -347,6 +358,9 @@ class UIManager {
                 </td>
             </tr>
         `).join('');
+
+        this._renderPagination('invoices-pagination', filtered.length, page, totalPages,
+            (p) => { this._page.invoices = p; this.renderInvoicesTable(invoices, filter, search); });
     }
 
     async showInvoiceForm(invoiceData = null) {
@@ -574,16 +588,23 @@ class UIManager {
                 <p>${search ? 'Try a different search term' : 'Add your first client to start creating invoices'}</p>
             </div>`;
             if (empty) empty.style.display = 'none';
+            this._renderPagination('clients-pagination', 0, 1, 1);
             return;
         }
 
         if (empty) empty.style.display = 'none';
 
+        const totalPages = Math.ceil(filtered.length / this._perPage);
+        if (this._page.clients > totalPages) this._page.clients = totalPages;
+        const page = this._page.clients;
+        const start = (page - 1) * this._perPage;
+        const paged = filtered.slice(start, start + this._perPage);
+
         const colors = ['#6366f1', '#06b6d4', '#f43f5e', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'];
 
-        grid.innerHTML = filtered.map((c, i) => {
+        grid.innerHTML = paged.map((c, i) => {
             const initials = this._getInitials(c.name);
-            const color = colors[i % colors.length];
+            const color = colors[(start + i) % colors.length];
             const cardData = JSON.stringify(c).replace(/"/g, '&quot;');
             return `
                 <div class="client-card" onclick="uiManager.showClientModal(${cardData})">
@@ -607,6 +628,9 @@ class UIManager {
                 </div>
             `;
         }).join('');
+
+        this._renderPagination('clients-pagination', filtered.length, page, totalPages,
+            (p) => { this._page.clients = p; this.renderClientsGrid(clients, search); });
     }
 
     showClientModal(clientData = null) {
@@ -692,6 +716,7 @@ class UIManager {
                 <div class="empty-state-title">No payments recorded</div>
                 <div class="empty-state-text">Record a payment to track your collections.</div>
             </div></td></tr>`;
+            this._renderPagination('payments-pagination', 0, 1, 1);
             return;
         }
 
@@ -704,7 +729,13 @@ class UIManager {
             'Other': 'fa-receipt'
         };
 
-        tbody.innerHTML = payments.map(p => `
+        const totalPages = Math.ceil(payments.length / this._perPage);
+        if (this._page.payments > totalPages) this._page.payments = totalPages;
+        const page = this._page.payments;
+        const start = (page - 1) * this._perPage;
+        const paged = payments.slice(start, start + this._perPage);
+
+        tbody.innerHTML = paged.map(p => `
             <tr>
                 <td><span style="font-weight:600;color:var(--primary);">${this.escapeHtml(p.invoice_number || '')}</span></td>
                 <td>${this.escapeHtml(p.client_name || '')}</td>
@@ -714,6 +745,9 @@ class UIManager {
                 <td style="color:var(--text-secondary);font-size:0.84rem;">${this.escapeHtml(p.reference || '—')}</td>
             </tr>
         `).join('');
+
+        this._renderPagination('payments-pagination', payments.length, page, totalPages,
+            (p) => { this._page.payments = p; this.renderPaymentsTable(payments); });
     }
 
     showPaymentModal() {
@@ -1486,6 +1520,10 @@ class UIManager {
         const paper = document.getElementById('invoice-preview-content');
         if (!paper) return;
 
+        // Clone the paper and wrap sections in page-break groups
+        const clone = paper.cloneNode(true);
+        this._wrapPrintGroups(clone);
+
         // Collect all stylesheets from the current page
         const styleLinks = Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
             .map(l => `<link rel="stylesheet" href="${l.href}">`)
@@ -1506,18 +1544,98 @@ class UIManager {
             ${styleLinks}
             ${inlineStyles}
             <style>
-                @page { size: A4 portrait; margin: 12mm 12mm 12mm 12mm; }
-                body { margin:0; padding:0; background:#fff; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
-                .inv-template-toolbar, .modal-header, .modal-footer { display:none!important; }
+                /* margin:0 removes browser-native header/footer (URL, title, date, page#) */
+                @page { size: A4 portrait; margin: 0; }
+                html, body {
+                    margin: 0; padding: 0;
+                    background: #fff;
+                    -webkit-print-color-adjust: exact;
+                    print-color-adjust: exact;
+                }
+                /* Scale the paper to fit A4 width with gutters */
+                .invoice-preview-paper {
+                    width: 190mm !important;
+                    margin: 10mm auto !important;
+                    padding: 10mm 12mm !important;
+                    box-shadow: none !important;
+                    font-size: 11px !important;
+                }
+                /* Group 1: header down to status line */
+                .pg-group-header,
+                /* Group 2: parties + GST */
+                .pg-group-parties,
+                /* Group 3: items table */
+                .pg-group-items,
+                /* Group 4: totals + notes */
+                .pg-group-totals,
+                /* Group 5: payment history */
+                .pg-group-payments {
+                    break-inside: avoid;
+                    page-break-inside: avoid;
+                }
+                /* keep table rows together where possible */
+                tr { break-inside: avoid; page-break-inside: avoid; }
             </style>
-        </head><body>${paper.outerHTML}</body></html>`);
+        </head><body>${clone.outerHTML}</body></html>`);
         iDoc.close();
 
         iframe.contentWindow.focus();
         setTimeout(() => {
             iframe.contentWindow.print();
-            setTimeout(() => document.body.removeChild(iframe), 1000);
-        }, 600);
+            setTimeout(() => { if (document.body.contains(iframe)) document.body.removeChild(iframe); }, 1500);
+        }, 700);
+    }
+
+    /* Wrap the 5 logical sections inside the cloned paper with break-inside:avoid divs */
+    _wrapPrintGroups(paper) {
+        // Helper: wrap a node in a div with a class
+        const wrap = (node, cls) => {
+            if (!node || !node.parentNode) return;
+            const div = document.createElement('div');
+            div.className = cls;
+            node.parentNode.insertBefore(div, node);
+            div.appendChild(node);
+        };
+
+        // Group 1 — .inv-header (brand + invoice number + status)
+        const header = paper.querySelector('.inv-header');
+        if (header) wrap(header, 'pg-group-header');
+
+        // Group 2 — .inv-parties (bill-to + payment info / GST)
+        const parties = paper.querySelector('.inv-parties');
+        if (parties) wrap(parties, 'pg-group-parties');
+
+        // Group 3 — the items table (first <table> or .inv-items-table)
+        const table = paper.querySelector('table');
+        if (table) wrap(table, 'pg-group-items');
+
+        // Group 4 — .inv-totals + notes div (the div right after totals)
+        const totals = paper.querySelector('.inv-totals');
+        if (totals) {
+            const notesDiv = totals.nextElementSibling;
+            const div = document.createElement('div');
+            div.className = 'pg-group-totals';
+            totals.parentNode.insertBefore(div, totals);
+            div.appendChild(totals);
+            if (notesDiv && !notesDiv.classList.contains('pg-group-payments') &&
+                !notesDiv.style.marginTop?.includes('24px')) {
+                // also grab notes if it follows immediately
+                const notesEl = paper.querySelector('[style*="Notes"]') ||
+                                 (notesDiv && !notesDiv.querySelector('table') ? notesDiv : null);
+                if (notesEl && notesEl.parentNode === div.parentNode) div.appendChild(notesEl);
+            }
+        }
+
+        // Group 5 — payment history section (div with margin-top:24px containing a table)
+        const allDivs = paper.querySelectorAll('div');
+        allDivs.forEach(d => {
+            if (d.querySelector('.inv-party-label') &&
+                d.querySelector('table') &&
+                (d.textContent || '').includes('Payment History')) {
+                if (!d.parentNode) return;
+                wrap(d, 'pg-group-payments');
+            }
+        });
     }
 
     async downloadInvoicePDF() {
@@ -1534,8 +1652,9 @@ class UIManager {
         const origHTML = btn ? btn.innerHTML : '';
         if (btn) btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
 
-        // Clone and apply accent color inline so html2pdf captures it
+        // Clone, wrap print groups, then apply accent color inline so html2pdf captures it
         const clone = paper.cloneNode(true);
+        this._wrapPrintGroups(clone);
         clone.style.cssText = `
             width: 794px;
             padding: 36px 40px;
@@ -1785,6 +1904,65 @@ Thank you for your business!`);
             if (document.body.contains(a)) document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
         }, 5000);
+    }
+
+    // ── Pagination Helper ──
+    _renderPagination(containerId, total, currentPage, totalPages, onPageChange) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        if (!onPageChange || totalPages <= 1) {
+            container.innerHTML = total > 0
+                ? `<div class="pagination-info">Showing ${total} item${total !== 1 ? 's' : ''}</div>`
+                : '';
+            return;
+        }
+
+        const perPage = this._perPage;
+        const start = (currentPage - 1) * perPage + 1;
+        const end = Math.min(currentPage * perPage, total);
+
+        // Build page number buttons — show max 5 around current page
+        let pages = [];
+        const delta = 2;
+        for (let i = Math.max(1, currentPage - delta); i <= Math.min(totalPages, currentPage + delta); i++) {
+            pages.push(i);
+        }
+
+        const btnClass = (p) => `pagination-btn${p === currentPage ? ' active' : ''}`;
+        const pageButtons = [];
+
+        if (pages[0] > 1) {
+            pageButtons.push(`<button class="pagination-btn" data-page="1">1</button>`);
+            if (pages[0] > 2) pageButtons.push(`<span class="pagination-ellipsis">…</span>`);
+        }
+        pages.forEach(p => pageButtons.push(`<button class="${btnClass(p)}" data-page="${p}">${p}</button>`));
+        if (pages[pages.length - 1] < totalPages) {
+            if (pages[pages.length - 1] < totalPages - 1) pageButtons.push(`<span class="pagination-ellipsis">…</span>`);
+            pageButtons.push(`<button class="pagination-btn" data-page="${totalPages}">${totalPages}</button>`);
+        }
+
+        container.innerHTML = `
+            <div class="pagination-info">Showing ${start}–${end} of ${total}</div>
+            <div class="pagination-controls">
+                <button class="pagination-btn prev" data-page="${currentPage - 1}" ${currentPage <= 1 ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                ${pageButtons.join('')}
+                <button class="pagination-btn next" data-page="${currentPage + 1}" ${currentPage >= totalPages ? 'disabled' : ''}>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        `;
+
+        container.querySelectorAll('.pagination-btn[data-page]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const p = parseInt(btn.dataset.page);
+                if (!isNaN(p) && p >= 1 && p <= totalPages && p !== currentPage) {
+                    onPageChange(p);
+                }
+            });
+        });
     }
 
     // ── Helpers ──

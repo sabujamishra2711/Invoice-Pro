@@ -91,6 +91,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const query = e.target.value.toLowerCase();
         const activeFilter = document.querySelector('#invoice-status-filter .filter-tab.active');
         const status = activeFilter?.dataset?.status || 'all';
+        uiManager._page.invoices = 1;
         uiManager.renderInvoicesTable(uiManager.invoicesData, status, query);
     });
 
@@ -100,6 +101,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelectorAll('#invoice-status-filter .filter-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
             const search = document.getElementById('invoice-search')?.value?.toLowerCase() || '';
+            uiManager._page.invoices = 1;
             uiManager.renderInvoicesTable(uiManager.invoicesData, tab.dataset.status, search);
         });
     });
@@ -107,6 +109,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Export/Print/PDF Buttons ──
     document.getElementById('export-invoices-btn')?.addEventListener('click', () => {
         uiManager.exportInvoicesCSV();
+    });
+
+    // ── Client Search ──
+    document.getElementById('client-search')?.addEventListener('input', (e) => {
+        uiManager._page.clients = 1;
+        uiManager.renderClientsGrid(uiManager.clientsData, e.target.value.toLowerCase());
     });
 
     document.getElementById('export-payments-btn')?.addEventListener('click', () => {

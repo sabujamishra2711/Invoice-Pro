@@ -281,6 +281,7 @@
                                 </tr>
                             </tbody>
                         </table>
+                        <div class="pagination-bar" id="invoices-pagination"></div>
                     </div>
                 </div>
             </div>
@@ -407,10 +408,11 @@
                     </div>
                 </div>
 
-                <div id="clients-grid"
-                    style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;">
-                    <!-- Client cards will be rendered here -->
-                </div>
+                    <div id="clients-grid"
+                        style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;">
+                        <!-- Client cards will be rendered here -->
+                    </div>
+                    <div class="pagination-bar" id="clients-pagination" style="margin-top:16px;"></div>
 
                 <!-- Fallback empty state -->
                 <div id="clients-empty" class="card" style="display:none;">
@@ -471,11 +473,10 @@
                                 </tr>
                             </tbody>
                         </table>
+                        <div class="pagination-bar" id="payments-pagination"></div>
                     </div>
                 </div>
             </div>
-
-            <!-- ════════ Reports View ════════ -->
             <div id="reports-view" class="view">
 
                 <div class="page-header">
