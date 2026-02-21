@@ -87,10 +87,10 @@ class ExpenseManager {
         if (!data) return;
         const s = data.summary || {};
         const el = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
-        el('expense-total-amount', '₹' + this._fmt(s.total_amount  || 0));
-        el('expense-count',        s.total_count   || 0);
-        el('expense-billable',     '₹' + this._fmt(s.billable_amount  || 0));
-        el('expense-unbilled',     '₹' + this._fmt(s.unbilled_amount  || 0));
+        el('expense-total-amount',  '₹' + this._fmt(s.total_amount    || 0));
+        el('expense-count',          s.total_count    || 0);
+        el('expense-billable-amount','₹' + this._fmt(s.billable_amount  || 0));
+        el('expense-unbilled',       '₹' + this._fmt(s.unbilled_amount  || 0));
     }
 
     populateClientDropdowns() {

@@ -106,6 +106,16 @@ class AuthController
     // ─── public routes ───────────────────────────────────────────────────────
 
     /**
+     * POST auth.logout (public — no auth required, token cleared client-side)
+     */
+    public function logout(array $input): array
+    {
+        // Stateless JWT-style tokens are cleared on the client.
+        // If we ever add server-side session invalidation, do it here.
+        return ['success' => true, 'data' => ['message' => 'Logged out successfully.']];
+    }
+
+    /**
      * POST auth.register
      * body: { name, email, password, phone? }
      * Creates account, sends verification OTP, returns token (unverified).

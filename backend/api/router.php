@@ -14,6 +14,7 @@ function routeRequest($method, $route, $input)
         'auth.reset'            => ['POST', 'AuthController@resetPassword'],
         'auth.password.change'  => ['POST', 'AuthController@changePassword'],
         'auth.profile.update'   => ['POST', 'AuthController@updateProfile'],
+        'auth.logout'           => ['POST', 'AuthController@logout'],
 
         // Client routes
         'client.list' => ['GET', 'ClientController@list'],

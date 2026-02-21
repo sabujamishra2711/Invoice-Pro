@@ -168,7 +168,7 @@ class ApiClient {
     }
 
     async updateSettings(data) {
-        return await this.request('settings.update', 'PUT', data);
+        return await this.request('settings.update', 'POST', data);
     }
 
     async getEmailSettings() {
