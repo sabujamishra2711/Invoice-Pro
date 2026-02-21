@@ -11,8 +11,15 @@ define('FIREBASE_AUTH_DOMAIN', 'mscoders-invoicepro.firebaseapp.com');
 define('FIREBASE_PROJECT_ID',  'mscoders-invoicepro');
 define('FIREBASE_APP_ID',      '1:808153794193:web:2c0337198f8dc1b9b76130');
 
-// Get the origin from the request for dynamic configuration
-$origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : (isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'http://localhost');
+// Build a clean origin (scheme + host) from the request — never includes a path
+if (isset($_SERVER['HTTP_ORIGIN']) && $_SERVER['HTTP_ORIGIN'] !== '') {
+    $origin = rtrim($_SERVER['HTTP_ORIGIN'], '/');
+} elseif (isset($_SERVER['HTTP_HOST'])) {
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $origin = $scheme . '://' . $_SERVER['HTTP_HOST'];
+} else {
+    $origin = 'http://localhost';
+}
 
 // Application settings - dynamic based on request origin
 if (!defined('APP_URL')) define('APP_URL', $origin);

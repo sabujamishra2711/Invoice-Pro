@@ -121,14 +121,12 @@ class SettingsController
                 return ['success' => false, 'error_code' => 'SAVE_FAILED', 'message' => 'Could not save logo.', 'http_code' => 500];
             }
 
-            // Persist path in DB
-            if ($existing) {
-                $stmt = $db->prepare("UPDATE settings SET logo_path = ? WHERE user_id = ?");
-                $stmt->execute([$filename, $userId]);
-            } else {
-                $stmt = $db->prepare("INSERT INTO settings (user_id, business_name, logo_path) VALUES (?, '', ?)");
-                $stmt->execute([$userId, $filename]);
-            }
+              // Persist path in DB — upsert to prevent duplicate rows
+            $stmt = $db->prepare("
+                INSERT INTO settings (user_id, business_name, logo_path) VALUES (?, '', ?)
+                ON DUPLICATE KEY UPDATE logo_path = VALUES(logo_path)
+            ");
+            $stmt->execute([$userId, $filename]);
 
             $logoUrl = LOGO_PUBLIC_URL . $filename;
 
@@ -245,11 +243,11 @@ class SettingsController
                 return ['success' => false, 'error_code' => 'SAVE_FAILED', 'message' => 'Could not save image.', 'http_code' => 500];
             }
 
-            if ($existing) {
-                $db->prepare("UPDATE settings SET upi_qr_path = ? WHERE user_id = ?")->execute([$filename, $userId]);
-            } else {
-                $db->prepare("INSERT INTO settings (user_id, business_name, upi_qr_path) VALUES (?, '', ?)")->execute([$userId, $filename]);
-            }
+            // Upsert — prevents duplicate rows
+            $db->prepare("
+                INSERT INTO settings (user_id, business_name, upi_qr_path) VALUES (?, '', ?)
+                ON DUPLICATE KEY UPDATE upi_qr_path = VALUES(upi_qr_path)
+            ")->execute([$userId, $filename]);
 
             return [
                 'success' => true,
@@ -337,75 +335,50 @@ class SettingsController
 
             $db = getDB();
 
-            // Check if settings exist
-            $stmt = $db->prepare("SELECT id FROM settings WHERE user_id = ?");
-            $stmt->execute([$userId]);
-            $existing = $stmt->fetch();
-
-            // Handle Razorpay keys — only update secret if a real value was provided
-            $newRzpSecret = $input['razorpay_key_secret'] ?? '';
+            // Preserve existing Razorpay secret if the client sent back the masked placeholder
+            $newRzpSecret    = $input['razorpay_key_secret'] ?? '';
             $updateRzpSecret = $newRzpSecret !== '' && $newRzpSecret !== '••••••••';
 
-            if ($existing) {
-                // Determine secret value to save
-                if ($updateRzpSecret) {
-                    $rzpSecret = $newRzpSecret;
-                } else {
-                    $row = $db->prepare("SELECT razorpay_key_secret FROM settings WHERE user_id = ?");
-                    $row->execute([$userId]);
-                    $r = $row->fetch();
-                    $rzpSecret = $r['razorpay_key_secret'] ?? null;
-                }
-
-                  $stmt = $db->prepare("
-                      UPDATE settings SET
-                          business_name = ?,
-                          address = ?,
-                          gst_number = ?,
-                          default_tax = ?,
-                          payment_terms = ?,
-                          invoice_prefix = ?,
-                          number_format = ?,
-                          razorpay_key_id = ?,
-                          razorpay_key_secret = ?,
-                          upi_id = ?
-                      WHERE user_id = ?
-                  ");
-                  $stmt->execute([
-                      $input['business_name'] ?? '',
-                      $input['address'] ?? null,
-                      $input['gst_number'] ?? null,
-                      $input['default_tax'] ?? 18.00,
-                      $input['payment_terms'] ?? null,
-                      $input['invoice_prefix'] ?? 'INV',
-                      $input['number_format'] ?? 'YYYY-MM-NNNN',
-                      $input['razorpay_key_id'] ?: null,
-                      $rzpSecret ?: null,
-                      $input['upi_id'] ?: null,
-                      $userId
-                  ]);
+            if ($updateRzpSecret) {
+                $rzpSecret = $newRzpSecret;
             } else {
-                $rzpSecret = $updateRzpSecret ? $newRzpSecret : null;
-                $stmt = $db->prepare("
-                    INSERT INTO settings (
-                        user_id, business_name, address, gst_number, default_tax, payment_terms,
-                        invoice_prefix, number_format, razorpay_key_id, razorpay_key_secret, upi_id
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                ");
-                $stmt->execute([
-                    $userId,
-                    $input['business_name'] ?? '',
-                    $input['address'] ?? null,
-                    $input['gst_number'] ?? null,
-                    $input['default_tax'] ?? 18.00,
-                    $input['payment_terms'] ?? null,
-                    $input['invoice_prefix'] ?? 'INV',
-                    $input['number_format'] ?? 'YYYY-MM-NNNN',
-                    $input['razorpay_key_id'] ?: null,
-                    $rzpSecret ?: null,
-                    $input['upi_id'] ?: null,
-                ]);
+                $row = $db->prepare("SELECT razorpay_key_secret FROM settings WHERE user_id = ?");
+                $row->execute([$userId]);
+                $r = $row->fetch();
+                $rzpSecret = $r['razorpay_key_secret'] ?? null;
             }
+
+            // Single upsert — impossible to create a duplicate row
+            $stmt = $db->prepare("
+                INSERT INTO settings
+                    (user_id, business_name, address, gst_number, default_tax, payment_terms,
+                     invoice_prefix, number_format, razorpay_key_id, razorpay_key_secret, upi_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    business_name       = VALUES(business_name),
+                    address             = VALUES(address),
+                    gst_number          = VALUES(gst_number),
+                    default_tax         = VALUES(default_tax),
+                    payment_terms       = VALUES(payment_terms),
+                    invoice_prefix      = VALUES(invoice_prefix),
+                    number_format       = VALUES(number_format),
+                    razorpay_key_id     = VALUES(razorpay_key_id),
+                    razorpay_key_secret = VALUES(razorpay_key_secret),
+                    upi_id              = VALUES(upi_id)
+            ");
+            $stmt->execute([
+                $userId,
+                $input['business_name'] ?? '',
+                $input['address'] ?? null,
+                $input['gst_number'] ?? null,
+                $input['default_tax'] ?? 18.00,
+                $input['payment_terms'] ?? null,
+                $input['invoice_prefix'] ?? 'INV',
+                $input['number_format'] ?? 'YYYY-MM-NNNN',
+                $input['razorpay_key_id'] ?: null,
+                $rzpSecret ?: null,
+                $input['upi_id'] ?: null,
+            ]);
 
             // Return updated settings (mask the secret)
             $stmt = $db->prepare("SELECT * FROM settings WHERE user_id = ?");
