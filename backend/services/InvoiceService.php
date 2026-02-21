@@ -476,6 +476,103 @@ class InvoiceService
         }
     }
 
+    // Duplicate an invoice — creates a new draft with today's dates and a new invoice number
+    public function duplicateInvoice($invoiceId, $userId)
+    {
+        try {
+            $this->db->beginTransaction();
+
+            // Fetch the source invoice
+            $stmt = $this->db->prepare("
+                SELECT * FROM invoices
+                WHERE id = ? AND user_id = ? AND deleted_at IS NULL
+            ");
+            $stmt->execute([$invoiceId, $userId]);
+            $source = $stmt->fetch();
+
+            if (!$source) {
+                $this->db->rollback();
+                throw new Exception('Invoice not found or access denied');
+            }
+
+            // Fetch source items
+            $stmt = $this->db->prepare("
+                SELECT description, quantity, rate, tax_percent, line_total
+                FROM invoice_items WHERE invoice_id = ? ORDER BY id
+            ");
+            $stmt->execute([$invoiceId]);
+            $sourceItems = $stmt->fetchAll();
+
+            // Generate a new invoice number
+            $generator = new InvoiceNumberGenerator($userId);
+            $newNumber = $generator->generate();
+
+            // New dates: today as issue_date, +30 days as due_date
+            $issueDate = date('Y-m-d');
+            $dueDate   = date('Y-m-d', strtotime('+30 days'));
+
+            // Insert new invoice (draft, zero paid, fresh snapshots from source)
+            $stmt = $this->db->prepare("INSERT INTO invoices (
+                user_id, client_id, invoice_number, issue_date, due_date,
+                subtotal, tax_amount, total_amount, status, currency, notes, pdf_dirty,
+                client_name_snapshot, client_company_snapshot, client_email_snapshot,
+                client_phone_snapshot, client_address_snapshot, client_gst_snapshot,
+                business_name_snapshot, business_address_snapshot, business_gst_snapshot,
+                business_logo_path_snapshot
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?, ?, 1,
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+
+            $stmt->execute([
+                $userId,
+                $source['client_id'],
+                $newNumber,
+                $issueDate,
+                $dueDate,
+                $source['subtotal'],
+                $source['tax_amount'],
+                $source['total_amount'],
+                $source['currency'],
+                $source['notes'],
+                // Snapshots copied verbatim from source
+                $source['client_name_snapshot'],
+                $source['client_company_snapshot'],
+                $source['client_email_snapshot'],
+                $source['client_phone_snapshot'],
+                $source['client_address_snapshot'],
+                $source['client_gst_snapshot'],
+                $source['business_name_snapshot'],
+                $source['business_address_snapshot'],
+                $source['business_gst_snapshot'],
+                $source['business_logo_path_snapshot'],
+            ]);
+
+            $newId = $this->db->lastInsertId();
+
+            // Copy line items
+            $stmt = $this->db->prepare("INSERT INTO invoice_items
+                (invoice_id, description, quantity, rate, tax_percent, line_total)
+                VALUES (?, ?, ?, ?, ?, ?)");
+
+            foreach ($sourceItems as $item) {
+                $stmt->execute([
+                    $newId,
+                    $item['description'],
+                    $item['quantity'],
+                    $item['rate'],
+                    $item['tax_percent'],
+                    $item['line_total'],
+                ]);
+            }
+
+            $this->db->commit();
+
+            return $this->getInvoiceWithDetails($newId, $userId);
+        } catch (Exception $e) {
+            $this->db->rollback();
+            throw $e;
+        }
+    }
+
     // Compute display status based on financial conditions (centralized logic)
     public function getDisplayStatus($invoice)
     {

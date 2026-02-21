@@ -353,6 +353,7 @@ class UIManager {
                     <div style="display:flex;gap:4px;">
                         <button class="btn-icon btn-ghost sm" title="View" onclick="uiManager.previewInvoice(${inv.id})"><i class="fas fa-eye"></i></button>
                         <button class="btn-icon btn-ghost sm" title="Edit" onclick="uiManager.editInvoice(${inv.id})"><i class="fas fa-pen"></i></button>
+                        <button class="btn-icon btn-ghost sm" title="Duplicate" onclick="uiManager.duplicateInvoice(${inv.id})"><i class="fas fa-copy"></i></button>
                         <button class="btn-icon btn-ghost sm" title="Delete" onclick="uiManager.deleteInvoice(${inv.id})" style="color:var(--danger);"><i class="fas fa-trash"></i></button>
                     </div>
                 </td>
@@ -551,6 +552,29 @@ class UIManager {
             }
         } catch (err) {
             this.showToast('error', 'Error', err.message);
+        }
+    }
+
+    async duplicateInvoice(id) {
+        try {
+            this.setLoading(true);
+            const result = await api.duplicateInvoice(id);
+            if (result.success) {
+                const newInv = result.data?.invoice;
+                this.showToast('success', 'Duplicated', `Invoice duplicated as ${newInv?.invoice_number || ''} (Draft).`);
+                // Close preview modal if open, reload list, then open the new invoice
+                this.closeModal('invoice-preview-modal');
+                await this.loadInvoices();
+                if (newInv?.id) {
+                    this.previewInvoice(newInv.id);
+                }
+            } else {
+                this.showToast('error', 'Error', result.message || 'Failed to duplicate invoice.');
+            }
+        } catch (err) {
+            this.showToast('error', 'Error', err.message || 'Failed to duplicate invoice.');
+        } finally {
+            this.setLoading(false);
         }
     }
 

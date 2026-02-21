@@ -150,6 +150,11 @@ document.addEventListener('DOMContentLoaded', () => {
         uiManager.sendInvoiceEmail();
     });
 
+    document.getElementById('preview-duplicate-btn')?.addEventListener('click', () => {
+        const inv = uiManager._currentPreviewInvoice;
+        if (inv?.id) uiManager.duplicateInvoice(inv.id);
+    });
+
     // ── Dashboard Period Tabs ──
     document.querySelectorAll('#revenue-period-tabs .filter-tab').forEach(tab => {
         tab.addEventListener('click', () => {

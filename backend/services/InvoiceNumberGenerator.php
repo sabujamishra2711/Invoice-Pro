@@ -103,7 +103,7 @@ class InvoiceNumberGenerator
     {
         $stmt = $this->db->prepare("
             SELECT id FROM invoices 
-            WHERE user_id = ? AND invoice_number = ? AND deleted_at IS NULL
+            WHERE user_id = ? AND invoice_number = ?
         ");
         $stmt->execute([$this->userId, $invoiceNumber]);
         return $stmt->fetch() !== false;

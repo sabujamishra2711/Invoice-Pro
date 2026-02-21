@@ -139,6 +139,10 @@ class ApiClient {
         return await this.request(`invoice.delete&id=${id}`, 'DELETE');
     }
 
+    async duplicateInvoice(id) {
+        return await this.request(`invoice.duplicate&id=${id}`, 'POST');
+    }
+
     // ── Payments ──
     async getPayments() {
         return await this.request('payment.list');

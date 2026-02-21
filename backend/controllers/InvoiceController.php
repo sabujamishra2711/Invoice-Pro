@@ -199,6 +199,39 @@ class InvoiceController
         }
     }
 
+    public function duplicate($input)
+    {
+        try {
+            $userId = authenticateRequest();
+            $invoiceId = $_GET['id'] ?? null;
+
+            if (!$invoiceId) {
+                return [
+                    'success' => false,
+                    'error_code' => 'VALIDATION_ERROR',
+                    'message' => 'Invoice ID is required',
+                    'http_code' => 400
+                ];
+            }
+
+            $invoiceService = new InvoiceService();
+            $newInvoice = $invoiceService->duplicateInvoice($invoiceId, $userId);
+
+            return [
+                'success' => true,
+                'data' => ['invoice' => $newInvoice],
+                'message' => 'Invoice duplicated successfully'
+            ];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'error_code' => 'INVOICE_DUPLICATE_FAILED',
+                'message' => 'Failed to duplicate invoice: ' . $e->getMessage(),
+                'http_code' => 500
+            ];
+        }
+    }
+
     public function exportCsv($input)
     {
         try {

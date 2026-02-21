@@ -31,6 +31,7 @@ function routeRequest($method, $route, $input)
         'pdf.generate' => ['GET', 'PdfController@generatePdf'],
         'pdf.download' => ['GET', 'PdfController@downloadPdf'],
         'invoice.pdf' => ['GET', 'PdfController@downloadPdf'],
+        'invoice.duplicate' => ['POST', 'InvoiceController@duplicate'],
         'invoice.export' => ['GET', 'InvoiceController@exportCsv'],
 
         // Dashboard routes
