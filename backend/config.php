@@ -7,14 +7,11 @@ define('DB_NAME', 'invoice_management');
 define('DB_USER', 'root');
 define('DB_PASS', '');
 
-// Firebase configuration — reads from env vars (Orchids secrets / Apache SetEnv / system env)
-function _env(string $key, string $default = ''): string {
-    return getenv($key) ?: ($_ENV[$key] ?? $_SERVER[$key] ?? $default);
-}
-define('FIREBASE_PROJECT_ID',  _env('FIREBASE_PROJECT_ID',  'your-firebase-project-id'));
-define('FIREBASE_API_KEY',     _env('FIREBASE_API_KEY',     ''));
-define('FIREBASE_AUTH_DOMAIN', _env('FIREBASE_AUTH_DOMAIN', ''));
-define('FIREBASE_APP_ID',      _env('FIREBASE_APP_ID',      ''));
+// Firebase configuration
+define('FIREBASE_API_KEY',     'AIzaSyDSKxwcd0pJ0N4rnsrvx6HhOXwc8E8O58c');
+define('FIREBASE_AUTH_DOMAIN', 'mscoders-invoicepro.firebaseapp.com');
+define('FIREBASE_PROJECT_ID',  'mscoders-invoicepro');
+define('FIREBASE_APP_ID',      '1:808153794193:web:2c0337198f8dc1b9b76130');
 
 // Get the origin from the request for dynamic configuration
 $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : (isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'http://localhost');
