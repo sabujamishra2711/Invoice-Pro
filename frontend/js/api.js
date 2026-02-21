@@ -93,7 +93,11 @@ class ApiClient {
     }
 
     // ── Dashboard ──
-    async getDashboardStats(period = '6m') {
+    async getDashboardStats(period = '30d') {
+        return await this.request(`dashboard.stats&period=${period}`);
+    }
+
+    async getReportStats(period = '30d') {
         return await this.request(`dashboard.stats&period=${period}`);
     }
 

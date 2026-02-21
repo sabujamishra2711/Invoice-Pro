@@ -174,10 +174,17 @@ document.addEventListener('DOMContentLoaded', () => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('#report-period-tabs .filter-tab').forEach(t => t.classList.remove('active'));
             tab.classList.add('active');
-            api.getDashboardStats(tab.dataset.period).then(result => {
-                uiManager.renderReportCharts(result?.data || {});
-            });
+            uiManager.loadReports(tab.dataset.period);
         });
+    });
+
+    // ── Report Export Buttons ──
+    document.getElementById('export-report-csv-btn')?.addEventListener('click', () => {
+        uiManager.exportReportsCSV();
+    });
+
+    document.getElementById('export-report-pdf-btn')?.addEventListener('click', () => {
+        uiManager.exportReportsPDF();
     });
 
     // Close menus/dropdowns on click outside

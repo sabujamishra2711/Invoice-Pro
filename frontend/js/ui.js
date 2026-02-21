@@ -827,97 +827,168 @@ class UIManager {
     }
 
     // ── Reports ──
-    async loadReports() {
+    async loadReports(period) {
+        // Use the active tab period if not supplied
+        if (!period) {
+            const active = document.querySelector('#report-period-tabs .filter-tab.active');
+            period = active?.dataset?.period || '30d';
+        }
+        this._reportPeriod = period;
         try {
-            // Use dashboard stats for report data
-            const result = await api.getDashboardStats();
+            const result = await api.getReportStats(period);
             const data = result?.data || {};
+            this._reportData = data; // cache for export
 
-            // Update stats
+            // ── Stat cards ──
             this._setText('report-total-revenue', this.formatCurrency(data.total_revenue || 0));
             this._setText('report-total-invoices', data.total_invoices || 0);
+            this._setText('report-avg-invoice', this.formatCurrency(data.avg_invoice || 0));
+            this._setText('report-outstanding', this.formatCurrency(data.pending_amount || 0));
 
-            const totalAmount = parseFloat(data.total_revenue || 0) + parseFloat(data.pending_amount || 0);
-            const rate = totalAmount > 0 ? ((parseFloat(data.total_revenue || 0) / totalAmount) * 100).toFixed(0) : 0;
+            const totalBilled = parseFloat(data.total_billed || 0);
+            const revenue     = parseFloat(data.total_revenue || 0);
+            const rate = totalBilled > 0 ? ((revenue / totalBilled) * 100).toFixed(0) : 0;
             this._setText('report-collection-rate', rate + '%');
 
-            // Render charts
-            this.renderReportCharts(data);
+            // ── Invoice breakdown table ──
+            this._renderReportBreakdownTable(data.invoice_breakdown || []);
+
+            // ── Charts ──
+            this.renderReportCharts(data, period);
         } catch (err) {
             console.warn('Load reports error:', err);
         }
     }
 
-    renderReportCharts(data) {
-        // Revenue chart
+    _renderReportBreakdownTable(rows) {
+        const tbody = document.getElementById('report-breakdown-body');
+        if (!tbody) return;
+        if (!rows.length) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-tertiary);">No invoices in this period.</td></tr>`;
+            return;
+        }
+        tbody.innerHTML = rows.map(r => `
+            <tr>
+                <td style="font-weight:600;color:var(--primary);">${this.escapeHtml(r.invoice_number)}</td>
+                <td>${this.escapeHtml(r.client_name)}${r.client_company ? `<br><span style="font-size:0.78rem;color:var(--text-tertiary);">${this.escapeHtml(r.client_company)}</span>` : ''}</td>
+                <td style="font-size:0.84rem;color:var(--text-secondary);">${this.formatDate(r.issue_date)}</td>
+                <td style="font-weight:600;">${this.formatCurrency(r.total_amount)}</td>
+                <td style="color:var(--success);font-weight:600;">${this.formatCurrency(r.paid_amount)}</td>
+                <td><span class="status-pill ${r.status}"><span class="status-dot"></span>${r.status}</span></td>
+            </tr>
+        `).join('');
+    }
+
+    renderReportCharts(data, period = '30d') {
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const gridColor  = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+        const textColor  = isDark ? '#94a3b8' : '#64748b';
+
+        // ── Revenue Line Chart ──
         const revCtx = document.getElementById('reportRevenueChart');
         if (revCtx) {
             if (this.charts.reportRevenue) this.charts.reportRevenue.destroy();
 
             const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const monthlyData = data.monthly_revenue || [];
+
+            // Determine how many months to show
+            const numMonths = period === '30d' ? 1 : period === '90d' ? 3 : period === '1y' ? 12 : Math.max(monthlyData.length, 1);
             const now = new Date();
             const labels = [];
             const values = [];
-            const monthlyData = data.monthly_revenue || [];
+            const billedValues = [];
 
-            for (let i = 5; i >= 0; i--) {
+            for (let i = numMonths - 1; i >= 0; i--) {
                 const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-                labels.push(months[d.getMonth()]);
+                labels.push(months[d.getMonth()] + (numMonths > 12 ? ` '${String(d.getFullYear()).slice(2)}` : ''));
                 const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                 const found = monthlyData.find(m => m.month === key);
                 values.push(found ? parseFloat(found.total) : 0);
+                billedValues.push(found ? parseFloat(found.billed) : 0);
             }
-
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
             this.charts.reportRevenue = new Chart(revCtx, {
                 type: 'line',
                 data: {
                     labels,
-                    datasets: [{
-                        label: 'Revenue',
-                        data: values,
-                        borderColor: '#6366f1',
-                        backgroundColor: 'rgba(99, 102, 241, 0.08)',
-                        borderWidth: 2.5,
-                        fill: true,
-                        tension: 0.4,
-                        pointBackgroundColor: '#6366f1',
-                        pointBorderColor: '#fff',
-                        pointBorderWidth: 2,
-                        pointRadius: 5,
-                        pointHoverRadius: 7,
-                    }]
+                    datasets: [
+                        {
+                            label: 'Collected',
+                            data: values,
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(99,102,241,0.08)',
+                            borderWidth: 2.5,
+                            fill: true,
+                            tension: 0.4,
+                            pointBackgroundColor: '#6366f1',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 5,
+                            pointHoverRadius: 7,
+                        },
+                        {
+                            label: 'Billed',
+                            data: billedValues,
+                            borderColor: '#06b6d4',
+                            backgroundColor: 'rgba(6,182,212,0.04)',
+                            borderWidth: 2,
+                            borderDash: [5, 4],
+                            fill: false,
+                            tension: 0.4,
+                            pointBackgroundColor: '#06b6d4',
+                            pointBorderColor: '#fff',
+                            pointBorderWidth: 2,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                        }
+                    ]
                 },
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'top',
+                            align: 'end',
+                            labels: { color: textColor, usePointStyle: true, pointStyle: 'circle', boxWidth: 8, padding: 16, font: { size: 12 } }
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? '#1e293b' : '#fff',
+                            titleColor: isDark ? '#f1f5f9' : '#0f172a',
+                            bodyColor: isDark ? '#94a3b8' : '#475569',
+                            borderColor: isDark ? '#334155' : '#e2e8f0',
+                            borderWidth: 1,
+                            cornerRadius: 10,
+                            padding: 12,
+                            callbacks: { label: (ctx) => ` ${ctx.dataset.label}: ₹${ctx.raw.toLocaleString('en-IN')}` }
+                        }
+                    },
                     scales: {
-                        x: { grid: { display: false }, ticks: { color: isDark ? '#94a3b8' : '#64748b' } },
+                        x: { grid: { display: false }, ticks: { color: textColor, font: { size: 11 } } },
                         y: {
-                            grid: { color: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)' },
-                            ticks: { color: isDark ? '#94a3b8' : '#64748b', callback: v => '₹' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v) }
+                            grid: { color: gridColor },
+                            ticks: { color: textColor, font: { size: 11 }, callback: v => '₹' + (v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v) }
                         }
                     }
                 }
             });
         }
 
-        // Client chart (top clients by revenue)
+        // ── Top Clients Doughnut ──
         const clientCtx = document.getElementById('reportClientChart');
         if (clientCtx) {
             if (this.charts.reportClient) this.charts.reportClient.destroy();
-
             const topClients = (data.top_clients || []).slice(0, 5);
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
 
             this.charts.reportClient = new Chart(clientCtx, {
                 type: 'doughnut',
                 data: {
                     labels: topClients.length ? topClients.map(c => c.name) : ['No data'],
                     datasets: [{
-                        data: topClients.length ? topClients.map(c => c.revenue) : [1],
+                        data: topClients.length ? topClients.map(c => parseFloat(c.revenue)) : [1],
                         backgroundColor: topClients.length
                             ? ['#6366f1', '#06b6d4', '#10b981', '#f59e0b', '#f43f5e']
                             : ['rgba(148,163,184,0.15)'],
@@ -933,20 +1004,132 @@ class UIManager {
                     plugins: {
                         legend: {
                             position: 'bottom',
-                            labels: {
-                                color: isDark ? '#94a3b8' : '#475569',
-                                padding: 12,
-                                usePointStyle: true,
-                                pointStyle: 'circle',
-                                boxWidth: 8,
-                                boxHeight: 8,
-                                font: { size: 11 }
-                            }
+                            labels: { color: textColor, padding: 12, usePointStyle: true, pointStyle: 'circle', boxWidth: 8, boxHeight: 8, font: { size: 11 } }
+                        },
+                        tooltip: {
+                            backgroundColor: isDark ? '#1e293b' : '#fff',
+                            titleColor: isDark ? '#f1f5f9' : '#0f172a',
+                            bodyColor: isDark ? '#94a3b8' : '#475569',
+                            borderColor: isDark ? '#334155' : '#e2e8f0',
+                            borderWidth: 1,
+                            cornerRadius: 10,
+                            padding: 12,
+                            callbacks: { label: (ctx) => ` ${ctx.label}: ₹${ctx.raw.toLocaleString('en-IN')}` }
                         }
                     }
                 }
             });
         }
+    }
+
+    // ── Export Reports CSV ──
+    exportReportsCSV() {
+        const data = this._reportData;
+        if (!data) { this.showToast('error', 'No Data', 'Load a report period first.'); return; }
+
+        const period = this._reportPeriod || 'all';
+        const periodLabel = { '30d': '30 Days', '90d': '90 Days', '1y': '1 Year', 'all': 'All Time' }[period] || period;
+
+        const rows = [
+            [`Report Period: ${periodLabel}`, '', '', '', '', ''],
+            ['Invoice #', 'Client', 'Issue Date', 'Total Billed', 'Paid', 'Status'],
+            ...(data.invoice_breakdown || []).map(r => [
+                r.invoice_number,
+                r.client_name + (r.client_company ? ` (${r.client_company})` : ''),
+                r.issue_date,
+                parseFloat(r.total_amount).toFixed(2),
+                parseFloat(r.paid_amount).toFixed(2),
+                r.status
+            ]),
+            [],
+            ['', '', 'Total Billed', parseFloat(data.total_billed || 0).toFixed(2), '', ''],
+            ['', '', 'Total Collected', parseFloat(data.total_revenue || 0).toFixed(2), '', ''],
+            ['', '', 'Outstanding', parseFloat(data.pending_amount || 0).toFixed(2), '', ''],
+        ];
+
+        const csv = rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href = url;
+        a.download = `report-${period}-${new Date().toISOString().split('T')[0]}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.showToast('success', 'Exported', 'Report downloaded as CSV.');
+    }
+
+    // ── Export Reports PDF (print-based) ──
+    exportReportsPDF() {
+        const data = this._reportData;
+        if (!data) { this.showToast('error', 'No Data', 'Load a report period first.'); return; }
+
+        const period = this._reportPeriod || 'all';
+        const periodLabel = { '30d': 'Last 30 Days', '90d': 'Last 90 Days', '1y': 'Last 1 Year', 'all': 'All Time' }[period] || period;
+        const today = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+        const rows = (data.invoice_breakdown || []).map(r => `
+            <tr>
+                <td>${this.escapeHtml(r.invoice_number)}</td>
+                <td>${this.escapeHtml(r.client_name)}${r.client_company ? `<br><small>${this.escapeHtml(r.client_company)}</small>` : ''}</td>
+                <td>${this.formatDate(r.issue_date)}</td>
+                <td style="text-align:right;">₹${parseFloat(r.total_amount).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
+                <td style="text-align:right;color:#10b981;">₹${parseFloat(r.paid_amount).toLocaleString('en-IN', {minimumFractionDigits:2})}</td>
+                <td><span style="padding:2px 8px;border-radius:20px;font-size:11px;background:${this._statusColor(r.status)};color:#fff;">${r.status}</span></td>
+            </tr>
+        `).join('');
+
+        const sc = data.status_counts || {};
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8">
+            <title>Report — ${periodLabel}</title>
+            <style>
+                body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;margin:0;padding:32px;color:#1e293b;font-size:13px;}
+                h1{font-size:22px;font-weight:700;margin:0 0 4px;}
+                .subtitle{color:#64748b;margin-bottom:28px;font-size:13px;}
+                .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px;}
+                .stat{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px;}
+                .stat-val{font-size:20px;font-weight:700;color:#6366f1;}
+                .stat-lbl{font-size:11px;color:#64748b;margin-top:4px;text-transform:uppercase;letter-spacing:.5px;}
+                table{width:100%;border-collapse:collapse;font-size:12px;}
+                th{background:#f1f5f9;padding:8px 12px;text-align:left;font-weight:600;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:.5px;}
+                td{padding:8px 12px;border-bottom:1px solid #f1f5f9;}
+                tr:last-child td{border-bottom:none;}
+                .section-title{font-size:14px;font-weight:700;margin:24px 0 12px;color:#0f172a;}
+                small{color:#94a3b8;font-size:10px;}
+                @media print{body{padding:16px;}}
+            </style>
+        </head><body>
+            <h1>Invoice Report</h1>
+            <div class="subtitle">Period: ${periodLabel} &nbsp;&middot;&nbsp; Generated: ${today}</div>
+            <div class="stats">
+                <div class="stat"><div class="stat-val">₹${parseFloat(data.total_revenue||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</div><div class="stat-lbl">Total Collected</div></div>
+                <div class="stat"><div class="stat-val">₹${parseFloat(data.total_billed||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</div><div class="stat-lbl">Total Billed</div></div>
+                <div class="stat"><div class="stat-val">${data.total_invoices||0}</div><div class="stat-lbl">Invoices</div></div>
+                <div class="stat"><div class="stat-val" style="color:${parseFloat(data.pending_amount||0)>0?'#ef4444':'#10b981'};">₹${parseFloat(data.pending_amount||0).toLocaleString('en-IN',{minimumFractionDigits:2})}</div><div class="stat-lbl">Outstanding</div></div>
+            </div>
+            <div class="stats" style="grid-template-columns:repeat(5,1fr);">
+                <div class="stat"><div class="stat-val" style="color:#94a3b8;">${sc.draft||0}</div><div class="stat-lbl">Draft</div></div>
+                <div class="stat"><div class="stat-val" style="color:#3b82f6;">${sc.sent||0}</div><div class="stat-lbl">Sent</div></div>
+                <div class="stat"><div class="stat-val" style="color:#f59e0b;">${sc.partial||0}</div><div class="stat-lbl">Partial</div></div>
+                <div class="stat"><div class="stat-val" style="color:#10b981;">${sc.paid||0}</div><div class="stat-lbl">Paid</div></div>
+                <div class="stat"><div class="stat-val" style="color:#ef4444;">${sc.overdue||0}</div><div class="stat-lbl">Overdue</div></div>
+            </div>
+            <div class="section-title">Invoice Breakdown</div>
+            <table>
+                <thead><tr><th>Invoice #</th><th>Client</th><th>Date</th><th style="text-align:right;">Billed</th><th style="text-align:right;">Paid</th><th>Status</th></tr></thead>
+                <tbody>${rows || '<tr><td colspan="6" style="text-align:center;color:#94a3b8;padding:24px;">No invoices in this period.</td></tr>'}</tbody>
+            </table>
+        </body></html>`;
+
+        const win = window.open('', '_blank');
+        win.document.write(html);
+        win.document.close();
+        win.focus();
+        setTimeout(() => { win.print(); }, 400);
+    }
+
+    _statusColor(status) {
+        const m = { draft:'#94a3b8', sent:'#3b82f6', partial:'#f59e0b', paid:'#10b981', overdue:'#ef4444' };
+        return m[status] || '#94a3b8';
     }
 
     // ── Settings ──

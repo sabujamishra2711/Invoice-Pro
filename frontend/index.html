@@ -484,29 +484,37 @@
                         <h2 class="page-header-title">Reports</h2>
                         <p class="page-header-subtitle">Analytics and business insights</p>
                     </div>
-                    <div class="filter-tabs" id="report-period-tabs">
-                        <button class="filter-tab active" data-period="30d">30 Days</button>
-                        <button class="filter-tab" data-period="90d">90 Days</button>
-                        <button class="filter-tab" data-period="1y">1 Year</button>
-                        <button class="filter-tab" data-period="all">All Time</button>
+                    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                        <div class="filter-tabs" id="report-period-tabs">
+                            <button class="filter-tab active" data-period="30d">30 Days</button>
+                            <button class="filter-tab" data-period="90d">90 Days</button>
+                            <button class="filter-tab" data-period="1y">1 Year</button>
+                            <button class="filter-tab" data-period="all">All Time</button>
+                        </div>
+                        <button class="btn btn-ghost sm" id="export-report-csv-btn" title="Export CSV">
+                            <i class="fas fa-file-csv"></i> Export CSV
+                        </button>
+                        <button class="btn btn-ghost sm" id="export-report-pdf-btn" title="Export PDF">
+                            <i class="fas fa-file-pdf"></i> Export PDF
+                        </button>
                     </div>
                 </div>
 
                 <!-- Report Stats -->
-                <div class="stats-grid" style="grid-template-columns:repeat(3,1fr);">
+                <div class="stats-grid" style="grid-template-columns:repeat(5,1fr);">
                     <div class="stat-card">
                         <div class="stat-card-header">
                             <div class="stat-card-icon emerald"><i class="fas fa-indian-rupee-sign"></i></div>
                         </div>
                         <div class="stat-card-value" id="report-total-revenue">₹0</div>
-                        <div class="stat-card-label">Total Revenue</div>
+                        <div class="stat-card-label">Collected</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-card-header">
                             <div class="stat-card-icon blue"><i class="fas fa-file-invoice"></i></div>
                         </div>
                         <div class="stat-card-value" id="report-total-invoices">0</div>
-                        <div class="stat-card-label">Invoices Created</div>
+                        <div class="stat-card-label">Invoices</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-card-header">
@@ -515,12 +523,27 @@
                         <div class="stat-card-value" id="report-collection-rate">0%</div>
                         <div class="stat-card-label">Collection Rate</div>
                     </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-icon violet"><i class="fas fa-calculator"></i></div>
+                        </div>
+                        <div class="stat-card-value" id="report-avg-invoice">₹0</div>
+                        <div class="stat-card-label">Avg Invoice</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-card-header">
+                            <div class="stat-card-icon rose"><i class="fas fa-clock"></i></div>
+                        </div>
+                        <div class="stat-card-value" id="report-outstanding">₹0</div>
+                        <div class="stat-card-label">Outstanding</div>
+                    </div>
                 </div>
 
+                <!-- Charts -->
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Monthly Revenue</h3>
+                            <h3 class="card-title">Revenue vs Billed</h3>
                         </div>
                         <div class="card-body">
                             <div class="chart-container"><canvas id="reportRevenueChart"></canvas></div>
@@ -528,11 +551,35 @@
                     </div>
                     <div class="card">
                         <div class="card-header">
-                            <h3 class="card-title">Client Distribution</h3>
+                            <h3 class="card-title">Top Clients</h3>
                         </div>
                         <div class="card-body">
                             <div class="chart-container"><canvas id="reportClientChart"></canvas></div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Invoice Breakdown Table -->
+                <div class="card" style="margin-top:20px;">
+                    <div class="card-header">
+                        <h3 class="card-title">Invoice Breakdown</h3>
+                    </div>
+                    <div class="card-body" style="padding:0;">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Client</th>
+                                    <th>Date</th>
+                                    <th>Total</th>
+                                    <th>Paid</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="report-breakdown-body">
+                                <tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-tertiary);">Select a period to load data.</td></tr>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
