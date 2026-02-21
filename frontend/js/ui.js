@@ -907,6 +907,32 @@ class UIManager {
         } catch (err) {
             console.warn('Load settings error:', err);
         }
+
+        // ── Populate Account tab ──
+        try {
+            const user = typeof authManager !== 'undefined' ? authManager.getCurrentUser() : null;
+            if (user) {
+                this._setVal('setting-name', user.name || '');
+                this._setVal('setting-email', user.email || '');
+            }
+        } catch { }
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        this._setVal('setting-theme', savedTheme);
+
+        // ── Populate Invoice Appearance tab ──
+        const savedTpl   = parseInt(localStorage.getItem('inv_template') || '1');
+        const savedColor = localStorage.getItem('inv_accent_color') || '#6366f1';
+
+        document.querySelectorAll('.settings-tpl-btn').forEach(b => {
+            b.classList.toggle('active', parseInt(b.dataset.tpl) === savedTpl);
+        });
+        const picker = document.getElementById('settings-accent-picker');
+        const label  = document.getElementById('settings-color-label');
+        if (picker) picker.value = savedColor;
+        if (label)  label.textContent = savedColor;
+        document.querySelectorAll('.settings-color-swatch').forEach(s => {
+            s.classList.toggle('active', s.dataset.color === savedColor);
+        });
     }
 
     initSettingsTabs() {
@@ -931,21 +957,7 @@ class UIManager {
                     activePanel.classList.add('active');
                 }
 
-                // Sync appearance UI when invoice settings tab is shown
-                if (tabId === 'invoice-settings') {
-                    const savedTpl = parseInt(localStorage.getItem('inv_template') || '1');
-                    const savedColor = localStorage.getItem('inv_accent_color') || '#6366f1';
-                    document.querySelectorAll('.settings-tpl-btn').forEach(b => {
-                        b.classList.toggle('active', parseInt(b.dataset.tpl) === savedTpl);
-                    });
-                    const picker = document.getElementById('settings-accent-picker');
-                    const label = document.getElementById('settings-color-label');
-                    if (picker) picker.value = savedColor;
-                    if (label) label.textContent = savedColor;
-                    document.querySelectorAll('.settings-color-swatch').forEach(s => {
-                        s.classList.toggle('active', s.dataset.color === savedColor);
-                    });
-                }
+
             });
         });
     }
