@@ -1177,6 +1177,22 @@ class UIManager {
             this._setVal('setting-tax-rate', data.default_tax);
             this._setVal('setting-invoice-prefix', data.invoice_prefix || 'INV');
 
+            // Razorpay payment gateway fields
+            this._setVal('setting-rzp-key-id', data.razorpay_key_id || '');
+            this._setVal('setting-rzp-key-secret', data.razorpay_key_secret || '');
+
+            // Show connected badge if key is configured
+            const rzpBadge = document.getElementById('rzp-status-badge');
+            if (rzpBadge) {
+                if (data.razorpay_key_id) {
+                    rzpBadge.style.display = '';
+                    rzpBadge.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#d1fae5;color:#065f46;font-size:0.78rem;font-weight:600;"><i class="fas fa-check-circle"></i> Connected</span>';
+                } else {
+                    rzpBadge.style.display = '';
+                    rzpBadge.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#fef3c7;color:#92400e;font-size:0.78rem;font-weight:600;"><i class="fas fa-exclamation-triangle"></i> Not configured</span>';
+                }
+            }
+
             // Show server logo if present
             const preview   = document.getElementById('logo-preview');
             const removeBtn = document.getElementById('logo-remove-btn');

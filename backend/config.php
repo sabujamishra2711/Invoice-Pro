@@ -1,6 +1,4 @@
 <?php
-define('RAZORPAY_KEY_ID',     'rzp_live_S0FczTC6hWZ8Nb');
-define('RAZORPAY_KEY_SECRET', '5Hs0RA2jnEdngIlOYVQwbpDi');
 // Database configuration
 define('DB_HOST', 'localhost');
 define('DB_NAME', 'invoice_management');

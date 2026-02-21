@@ -17,21 +17,27 @@ class SettingsController
 
             if (!$settings) {
                 $settings = [
-                    'business_name' => '',
-                    'logo_path'     => null,
-                    'logo_url'      => null,
-                    'address'       => null,
-                    'gst_number'    => null,
-                    'default_tax'   => 18.00,
-                    'payment_terms' => null,
-                    'invoice_prefix'=> 'INV',
-                    'number_format' => 'YYYY-MM-NNNN'
+                    'business_name'     => '',
+                    'logo_path'         => null,
+                    'logo_url'          => null,
+                    'address'           => null,
+                    'gst_number'        => null,
+                    'default_tax'       => 18.00,
+                    'payment_terms'     => null,
+                    'invoice_prefix'    => 'INV',
+                    'number_format'     => 'YYYY-MM-NNNN',
+                    'razorpay_key_id'   => null,
+                    'razorpay_key_secret' => null,
                 ];
             } else {
                 // Build a publicly accessible URL for the logo
                 $settings['logo_url'] = !empty($settings['logo_path'])
                     ? LOGO_PUBLIC_URL . basename($settings['logo_path'])
                     : null;
+                // Never expose the raw secret to the client
+                if (!empty($settings['razorpay_key_secret'])) {
+                    $settings['razorpay_key_secret'] = '••••••••';
+                }
             }
 
             return [
@@ -244,17 +250,32 @@ class SettingsController
             $stmt->execute([$userId]);
             $existing = $stmt->fetch();
 
+            // Handle Razorpay keys — only update secret if a real value was provided
+            $newRzpSecret = $input['razorpay_key_secret'] ?? '';
+            $updateRzpSecret = $newRzpSecret !== '' && $newRzpSecret !== '••••••••';
+
             if ($existing) {
-                // Update existing settings
+                // Determine secret value to save
+                if ($updateRzpSecret) {
+                    $rzpSecret = $newRzpSecret;
+                } else {
+                    $row = $db->prepare("SELECT razorpay_key_secret FROM settings WHERE user_id = ?");
+                    $row->execute([$userId]);
+                    $r = $row->fetch();
+                    $rzpSecret = $r['razorpay_key_secret'] ?? null;
+                }
+
                 $stmt = $db->prepare("
-                    UPDATE settings SET 
-                        business_name = ?, 
-                        address = ?, 
-                        gst_number = ?, 
-                        default_tax = ?, 
+                    UPDATE settings SET
+                        business_name = ?,
+                        address = ?,
+                        gst_number = ?,
+                        default_tax = ?,
                         payment_terms = ?,
                         invoice_prefix = ?,
-                        number_format = ?
+                        number_format = ?,
+                        razorpay_key_id = ?,
+                        razorpay_key_secret = ?
                     WHERE user_id = ?
                 ");
                 $stmt->execute([
@@ -265,14 +286,17 @@ class SettingsController
                     $input['payment_terms'] ?? null,
                     $input['invoice_prefix'] ?? 'INV',
                     $input['number_format'] ?? 'YYYY-MM-NNNN',
+                    $input['razorpay_key_id'] ?: null,
+                    $rzpSecret ?: null,
                     $userId
                 ]);
             } else {
-                // Create new settings
+                $rzpSecret = $updateRzpSecret ? $newRzpSecret : null;
                 $stmt = $db->prepare("
                     INSERT INTO settings (
-                        user_id, business_name, address, gst_number, default_tax, payment_terms, invoice_prefix, number_format
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                        user_id, business_name, address, gst_number, default_tax, payment_terms,
+                        invoice_prefix, number_format, razorpay_key_id, razorpay_key_secret
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([
                     $userId,
@@ -282,14 +306,19 @@ class SettingsController
                     $input['default_tax'] ?? 18.00,
                     $input['payment_terms'] ?? null,
                     $input['invoice_prefix'] ?? 'INV',
-                    $input['number_format'] ?? 'YYYY-MM-NNNN'
+                    $input['number_format'] ?? 'YYYY-MM-NNNN',
+                    $input['razorpay_key_id'] ?: null,
+                    $rzpSecret ?: null,
                 ]);
             }
 
-            // Return updated settings
+            // Return updated settings (mask the secret)
             $stmt = $db->prepare("SELECT * FROM settings WHERE user_id = ?");
             $stmt->execute([$userId]);
             $settings = $stmt->fetch();
+            if (!empty($settings['razorpay_key_secret'])) {
+                $settings['razorpay_key_secret'] = '••••••••';
+            }
 
             return [
                 'success' => true,

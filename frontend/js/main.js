@@ -458,6 +458,94 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log('✅ InvoicePro initialized');
 
+    // ── Payment Gateway Settings ──
+    document.getElementById('toggle-rzp-secret')?.addEventListener('click', () => {
+        const input = document.getElementById('setting-rzp-key-secret');
+        const icon  = document.querySelector('#toggle-rzp-secret i');
+        if (!input) return;
+        if (input.type === 'password') {
+            input.type = 'text';
+            if (icon) icon.className = 'fas fa-eye-slash';
+        } else {
+            input.type = 'password';
+            if (icon) icon.className = 'fas fa-eye';
+        }
+    });
+
+    document.getElementById('save-payment-gateway-btn')?.addEventListener('click', async () => {
+        const keyId     = document.getElementById('setting-rzp-key-id')?.value.trim() || '';
+        const keySecret = document.getElementById('setting-rzp-key-secret')?.value || '';
+        const msgEl     = document.getElementById('rzp-save-msg');
+        const btn       = document.getElementById('save-payment-gateway-btn');
+        const badgeEl   = document.getElementById('rzp-status-badge');
+
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'; }
+        if (msgEl) msgEl.style.display = 'none';
+
+        try {
+            // Fetch current settings first to preserve other fields
+            const current = await api.getSettings();
+            const s = current?.data?.settings || current?.data || {};
+
+            const payload = {
+                business_name:   s.business_name   || '',
+                address:         s.address         || null,
+                gst_number:      s.gst_number      || null,
+                default_tax:     s.default_tax      || 18,
+                payment_terms:   s.payment_terms    || null,
+                invoice_prefix:  s.invoice_prefix   || 'INV',
+                number_format:   s.number_format    || 'YYYY-MM-NNNN',
+                razorpay_key_id:     keyId     || null,
+                razorpay_key_secret: keySecret || null,
+            };
+
+            const result = await api.updateSettings(payload);
+
+            if (result.success) {
+                if (msgEl) {
+                    msgEl.style.display = 'block';
+                    msgEl.style.background = 'rgba(16,185,129,0.1)';
+                    msgEl.style.border = '1px solid rgba(16,185,129,0.2)';
+                    msgEl.style.color = 'var(--success)';
+                    msgEl.innerHTML = '<i class="fas fa-check-circle" style="margin-right:6px;"></i>Payment settings saved successfully.';
+                    setTimeout(() => { msgEl.style.display = 'none'; }, 3000);
+                }
+                if (badgeEl) {
+                    if (keyId) {
+                        badgeEl.style.display = '';
+                        badgeEl.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#d1fae5;color:#065f46;font-size:0.78rem;font-weight:600;"><i class="fas fa-check-circle"></i> Connected</span>';
+                    } else {
+                        badgeEl.style.display = '';
+                        badgeEl.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#fef3c7;color:#92400e;font-size:0.78rem;font-weight:600;"><i class="fas fa-exclamation-triangle"></i> Not configured</span>';
+                    }
+                }
+            } else {
+                if (msgEl) {
+                    msgEl.style.display = 'block';
+                    msgEl.style.background = 'rgba(239,68,68,0.08)';
+                    msgEl.style.border = '1px solid rgba(239,68,68,0.15)';
+                    msgEl.style.color = 'var(--danger)';
+                    msgEl.innerHTML = `<i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>${result.message || 'Could not save payment settings.'}`;
+                }
+            }
+        } catch (err) {
+            if (msgEl) {
+                msgEl.style.display = 'block';
+                msgEl.style.background = 'rgba(239,68,68,0.08)';
+                msgEl.style.border = '1px solid rgba(239,68,68,0.15)';
+                msgEl.style.color = 'var(--danger)';
+                msgEl.innerHTML = `<i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>${err.message || 'Network error.'}`;
+            }
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Save Payment Settings'; }
+        }
+    });
+
+    // Load Razorpay settings when payment tab is opened
+    document.querySelector('[data-tab="payment-settings"]')?.addEventListener('click', () => {
+        uiManager.loadSettings();
+    });
+
     // ── Email Settings Handlers ──
     document.getElementById('save-email-settings')?.addEventListener('click', () => {
         uiManager.saveEmailSettings();

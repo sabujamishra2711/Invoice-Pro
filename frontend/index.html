@@ -984,8 +984,9 @@
                     <button class="tab-btn active" data-tab="business">Business Info</button>
                     <button class="tab-btn" data-tab="invoice-settings">Invoice</button>
                     <button class="tab-btn" data-tab="tax-settings">Tax</button>
-                    <button class="tab-btn" data-tab="email-settings">Email / SMTP</button>
-                    <button class="tab-btn" data-tab="account-settings">Account</button>
+                        <button class="tab-btn" data-tab="email-settings">Email / SMTP</button>
+                        <button class="tab-btn" data-tab="payment-settings">Payments</button>
+                        <button class="tab-btn" data-tab="account-settings">Account</button>
                 </div>
 
                 <!-- Business Info Tab -->
@@ -1255,7 +1256,57 @@
                             </button>
                         </div>
                     </div>
-                </div>
+                  </div>
+
+                  <!-- Payment Gateway Tab -->
+                  <div class="tab-panel" id="tab-payment-settings">
+                      <div class="card">
+                          <div class="card-body">
+                              <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:24px;">
+                                  <div style="width:42px;height:42px;border-radius:10px;background:#e0e7ff;display:flex;align-items:center;justify-content:center;color:#6366f1;font-size:1.2rem;flex-shrink:0;">
+                                      <i class="fas fa-credit-card"></i>
+                                  </div>
+                                  <div>
+                                      <h4 style="margin:0;font-size:0.95rem;font-weight:700;color:var(--text-primary);">Razorpay Integration</h4>
+                                      <p style="margin:4px 0 0;font-size:0.82rem;color:var(--text-tertiary);">Connect your Razorpay account so clients can pay invoices online. Payments go directly into your Razorpay account.</p>
+                                  </div>
+                              </div>
+
+                              <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:16px 18px;margin-bottom:20px;font-size:0.83rem;color:#475569;line-height:1.6;">
+                                  <strong style="color:#0f172a;">How to get your keys:</strong><br>
+                                  1. Log in to <a href="https://dashboard.razorpay.com" target="_blank" style="color:#6366f1;">dashboard.razorpay.com</a><br>
+                                  2. Go to <strong>Settings → API Keys</strong><br>
+                                  3. Generate keys (use <strong>Test keys</strong> for testing, <strong>Live keys</strong> for production)<br>
+                                  4. Copy the <strong>Key ID</strong> and <strong>Key Secret</strong> and paste below.
+                              </div>
+
+                              <div class="form-group">
+                                  <label class="form-label">Razorpay Key ID</label>
+                                  <input type="text" class="form-control" id="setting-rzp-key-id" placeholder="rzp_live_xxxxxxxxxxxx or rzp_test_xxxxxxxxxxxx">
+                                  <p style="font-size:0.75rem;color:var(--text-tertiary);margin-top:4px;">Starts with <code>rzp_live_</code> (production) or <code>rzp_test_</code> (testing).</p>
+                              </div>
+                              <div class="form-group">
+                                  <label class="form-label">Razorpay Key Secret</label>
+                                  <div style="position:relative;">
+                                      <input type="password" class="form-control" id="setting-rzp-key-secret" placeholder="Your Razorpay Key Secret" style="padding-right:44px;">
+                                      <button type="button" id="toggle-rzp-secret" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-tertiary);font-size:0.9rem;" title="Show/hide secret">
+                                          <i class="fas fa-eye"></i>
+                                      </button>
+                                  </div>
+                                  <p style="font-size:0.75rem;color:var(--text-tertiary);margin-top:4px;">Leave unchanged (shows ••••••••) to keep existing secret.</p>
+                              </div>
+
+                              <div id="rzp-save-msg" style="display:none;margin-bottom:14px;padding:10px 14px;border-radius:10px;font-size:0.85rem;"></div>
+
+                              <div style="display:flex;align-items:center;gap:12px;">
+                                  <button type="button" class="btn btn-primary" id="save-payment-gateway-btn">
+                                      <i class="fas fa-check"></i> Save Payment Settings
+                                  </button>
+                                  <div id="rzp-status-badge" style="display:none;"></div>
+                              </div>
+                          </div>
+                      </div>
+                  </div>
 
                   <!-- Account Settings Tab -->
                   <div class="tab-panel" id="tab-account-settings">

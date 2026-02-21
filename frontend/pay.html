@@ -196,22 +196,32 @@
       ? `<div style="margin-top:20px;"><div class="section-title">Notes</div><div class="notes-box">${esc(inv.notes)}</div></div>`
       : '';
 
-    const paySection = (() => {
-      if (status === 'paid') {
-        return `<div class="card"><div class="card-body"><div class="paid-banner"><i class="fas fa-check-circle"></i> This invoice has been paid in full. Thank you!</div></div></div>`;
-      }
-      if (!inv.payment_enabled) return '';
-      return `<div class="card">
-        <div class="pay-section">
-          <div class="pay-amount">${fmt(balance, cur)}</div>
-          <div class="pay-label">Amount due</div>
-          <button class="btn-pay" id="pay-btn" onclick="startPayment()">
-            <i class="fas fa-lock"></i> Pay Securely
-          </button>
-          <div class="rzp-secure"><i class="fas fa-shield-alt"></i> Secured by Razorpay &bull; 100% safe &amp; encrypted</div>
-        </div>
-      </div>`;
-    })();
+      const paySection = (() => {
+        if (status === 'paid') {
+          return `<div class="card"><div class="card-body"><div class="paid-banner"><i class="fas fa-check-circle"></i> This invoice has been paid in full. Thank you!</div></div></div>`;
+        }
+        if (!inv.payment_enabled) {
+          if (inv.razorpay_key_id) return ''; // key present but balance = 0 — shouldn't reach here
+          // Owner has not configured online payments — show info message
+          return `<div class="card">
+            <div class="pay-section">
+              <div style="color:#94a3b8;font-size:2rem;margin-bottom:12px;"><i class="fas fa-credit-card"></i></div>
+              <div style="font-weight:700;font-size:1rem;color:#475569;margin-bottom:6px;">Online payment not available</div>
+              <div style="font-size:0.85rem;color:#94a3b8;">The invoice issuer has not set up online payments yet.<br>Please contact them directly to arrange payment.</div>
+            </div>
+          </div>`;
+        }
+        return `<div class="card">
+          <div class="pay-section">
+            <div class="pay-amount">${fmt(balance, cur)}</div>
+            <div class="pay-label">Amount due</div>
+            <button class="btn-pay" id="pay-btn" onclick="startPayment()">
+              <i class="fas fa-lock"></i> Pay Securely
+            </button>
+            <div class="rzp-secure"><i class="fas fa-shield-alt"></i> Secured by Razorpay &bull; 100% safe &amp; encrypted</div>
+          </div>
+        </div>`;
+      })();
 
     app.innerHTML = `
       <div class="card">

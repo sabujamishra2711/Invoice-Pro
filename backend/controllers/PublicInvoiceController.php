@@ -18,7 +18,7 @@ class PublicInvoiceController
             $db   = getDB();
             $stmt = $db->prepare("
                 SELECT
-                    i.id, i.invoice_number, i.issue_date, i.due_date,
+                    i.id, i.user_id, i.invoice_number, i.issue_date, i.due_date,
                     i.subtotal, i.tax_amount, i.total_amount, i.paid_amount,
                     i.currency, i.notes, i.status, i.public_token,
                     i.client_name_snapshot    AS client_name,
@@ -59,8 +59,11 @@ class PublicInvoiceController
             $invoice['calculated_status'] = $status;
             $invoice['balance']           = max(0, $total - $paid);
 
-            // Use global Razorpay key from config
-            $rzpKeyId = defined('RAZORPAY_KEY_ID') ? RAZORPAY_KEY_ID : null;
+            // Use the invoice OWNER's Razorpay key (from their settings row)
+            $rzpStmt = $db->prepare("SELECT razorpay_key_id FROM settings WHERE user_id = ?");
+            $rzpStmt->execute([$invoice['user_id']]);
+            $ownerSettings = $rzpStmt->fetch();
+            $rzpKeyId = $ownerSettings['razorpay_key_id'] ?? null;
 
             $invoice['razorpay_key_id'] = $rzpKeyId;
             $invoice['payment_enabled'] = !empty($rzpKeyId) && $invoice['balance'] > 0;
@@ -83,9 +86,9 @@ class PublicInvoiceController
             return ['success' => false, 'error_code' => 'MISSING_TOKEN', 'message' => 'Token required', 'http_code' => 400];
         }
 
-        try {
+            try {
             $db   = getDB();
-            $stmt = $db->prepare("SELECT id, invoice_number, total_amount, paid_amount, currency, deleted_at FROM invoices WHERE public_token = ? AND deleted_at IS NULL");
+            $stmt = $db->prepare("SELECT id, user_id, invoice_number, total_amount, paid_amount, currency, deleted_at FROM invoices WHERE public_token = ? AND deleted_at IS NULL");
             $stmt->execute([$token]);
             $invoice = $stmt->fetch();
 
@@ -98,6 +101,17 @@ class PublicInvoiceController
                 return ['success' => false, 'error_code' => 'ALREADY_PAID', 'message' => 'Invoice is already fully paid', 'http_code' => 400];
             }
 
+            // Look up the invoice OWNER's Razorpay credentials
+            $rzpStmt = $db->prepare("SELECT razorpay_key_id, razorpay_key_secret FROM settings WHERE user_id = ?");
+            $rzpStmt->execute([$invoice['user_id']]);
+            $ownerRzp = $rzpStmt->fetch();
+            $keyId     = $ownerRzp['razorpay_key_id']     ?? '';
+            $keySecret = $ownerRzp['razorpay_key_secret']  ?? '';
+
+            if (!$keyId || !$keySecret) {
+                return ['success' => false, 'error_code' => 'PAYMENT_NOT_CONFIGURED', 'message' => 'The invoice owner has not configured online payments.', 'http_code' => 503];
+            }
+
             // Razorpay works in paise (INR smallest unit). For other currencies use 100x.
             $amountMinor = (int)round($balance * 100);
             $currency    = strtoupper($invoice['currency'] ?? 'INR');
@@ -108,9 +122,6 @@ class PublicInvoiceController
                 'receipt'  => 'pub_' . $invoice['id'] . '_' . time(),
                 'notes'    => ['invoice_number' => $invoice['invoice_number'], 'token' => $token],
             ];
-
-            $keyId     = defined('RAZORPAY_KEY_ID')     ? RAZORPAY_KEY_ID     : '';
-            $keySecret = defined('RAZORPAY_KEY_SECRET') ? RAZORPAY_KEY_SECRET : '';
 
             $ch = curl_init('https://api.razorpay.com/v1/orders');
             curl_setopt_array($ch, [
@@ -162,21 +173,28 @@ class PublicInvoiceController
             return ['success' => false, 'error_code' => 'MISSING_PARAMS', 'message' => 'Payment details incomplete', 'http_code' => 400];
         }
 
-        // Verify signature
-        $keySecret = defined('RAZORPAY_KEY_SECRET') ? RAZORPAY_KEY_SECRET : '';
-        $expected  = hash_hmac('sha256', $orderId . '|' . $paymentId, $keySecret);
-        if (!hash_equals($expected, $signature)) {
-            return ['success' => false, 'error_code' => 'INVALID_SIGNATURE', 'message' => 'Payment verification failed', 'http_code' => 400];
-        }
-
         try {
             $db   = getDB();
-            $stmt = $db->prepare("SELECT id, total_amount, paid_amount FROM invoices WHERE public_token = ? AND deleted_at IS NULL");
+
+            // Fetch invoice and owner info first so we can use their key secret
+            $stmt = $db->prepare("SELECT id, user_id, total_amount, paid_amount FROM invoices WHERE public_token = ? AND deleted_at IS NULL");
             $stmt->execute([$token]);
             $invoice = $stmt->fetch();
 
             if (!$invoice) {
                 return ['success' => false, 'error_code' => 'NOT_FOUND', 'message' => 'Invoice not found', 'http_code' => 404];
+            }
+
+            // Get the invoice owner's Razorpay secret for signature verification
+            $rzpStmt = $db->prepare("SELECT razorpay_key_secret FROM settings WHERE user_id = ?");
+            $rzpStmt->execute([$invoice['user_id']]);
+            $ownerRzp  = $rzpStmt->fetch();
+            $keySecret = $ownerRzp['razorpay_key_secret'] ?? '';
+
+            // Verify Razorpay signature using owner's secret
+            $expected = hash_hmac('sha256', $orderId . '|' . $paymentId, $keySecret);
+            if (!hash_equals($expected, $signature)) {
+                return ['success' => false, 'error_code' => 'INVALID_SIGNATURE', 'message' => 'Payment verification failed', 'http_code' => 400];
             }
 
             // Idempotency — check if this Razorpay payment_id was already recorded
@@ -208,7 +226,7 @@ class PublicInvoiceController
 
             return ['success' => true, 'message' => 'Payment recorded successfully', 'data' => ['amount_paid' => $balance]];
         } catch (Exception $e) {
-            if ($db->inTransaction()) $db->rollback();
+            if (isset($db) && $db->inTransaction()) $db->rollback();
             return ['success' => false, 'error_code' => 'SERVER_ERROR', 'message' => 'Failed to record payment', 'http_code' => 500];
         }
     }
