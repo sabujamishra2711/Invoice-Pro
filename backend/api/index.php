@@ -54,7 +54,14 @@ if (file_exists(__DIR__ . '/../helpers/CSRFProtection.php')) {
 try {
     $method = $_SERVER['REQUEST_METHOD'];
     $route = $_GET['route'] ?? '';
-    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+    // For multipart/form-data (file uploads), use $_POST; otherwise parse JSON body
+    $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+    if (strpos($contentType, 'multipart/form-data') !== false) {
+        $input = $_POST;
+    } else {
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    }
 
     // Auth routes don't require token or CSRF
         $publicRoutes = ['auth.login', 'auth.register', 'razorpay.pricing'];

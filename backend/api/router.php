@@ -48,6 +48,8 @@ function routeRequest($method, $route, $input)
         // Settings routes
         'settings.get' => ['GET', 'SettingsController@get'],
         'settings.update' => ['POST', 'SettingsController@update'],
+        'settings.logo.upload' => ['POST', 'SettingsController@uploadLogo'],
+        'settings.logo.delete' => ['POST', 'SettingsController@deleteLogo'],
 
         // Email settings routes
         'email.settings.get' => ['GET', 'SettingsController@getEmailSettings'],

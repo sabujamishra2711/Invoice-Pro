@@ -676,18 +676,23 @@
                                     <label class="form-label">Business Logo</label>
                                     <div style="display:flex;align-items:center;gap:16px;">
                                         <div id="logo-preview"
-                                            style="width:64px;height:64px;border-radius:12px;background:var(--primary-50);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:1.5rem;border:2px dashed var(--border-color);">
+                                            style="width:64px;height:64px;border-radius:12px;background:var(--primary-50);display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:1.5rem;border:2px dashed var(--border-color);overflow:hidden;flex-shrink:0;">
                                             <i class="fas fa-image"></i>
                                         </div>
                                         <div>
                                             <input type="file" id="logo-upload" accept="image/*" style="display:none;">
-                                            <button type="button" class="btn btn-sm btn-secondary"
-                                                onclick="document.getElementById('logo-upload').click()">
-                                                <i class="fas fa-upload"></i> Upload Logo
-                                            </button>
-                                            <p style="font-size:0.75rem;color:var(--text-tertiary);margin-top:4px;">
-                                                PNG,
-                                                JPG up to 2MB</p>
+                                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                                                <button type="button" class="btn btn-sm btn-secondary" id="logo-upload-btn"
+                                                    onclick="document.getElementById('logo-upload').click()">
+                                                    <i class="fas fa-upload"></i> Upload Logo
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-danger" id="logo-remove-btn"
+                                                    style="display:none;">
+                                                    <i class="fas fa-trash"></i> Remove
+                                                </button>
+                                                <span id="logo-upload-status" style="font-size:0.78rem;color:var(--text-tertiary);"></span>
+                                            </div>
+                                            <p style="font-size:0.75rem;color:var(--text-tertiary);margin-top:4px;">PNG, JPG, WebP up to 2MB</p>
                                         </div>
                                     </div>
                                 </div>

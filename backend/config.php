@@ -20,6 +20,10 @@ $origin = isset($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : (isset($_SE
 if (!defined('APP_URL')) define('APP_URL', $origin);
 if (!defined('API_URL')) define('API_URL', $origin . '/invoice-management/backend/api');
 
+// Storage paths
+if (!defined('LOGO_STORAGE_PATH')) define('LOGO_STORAGE_PATH', __DIR__ . '/../../storage/logos/');
+if (!defined('LOGO_PUBLIC_URL'))   define('LOGO_PUBLIC_URL',   $origin . '/invoice-management/storage/logos/');
+
 // Database connection
 function getDB()
 {
