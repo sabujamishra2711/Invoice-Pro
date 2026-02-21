@@ -79,7 +79,7 @@ class ExpenseService
             $data['vendor'] ?? null,
             $data['payment_method'] ?? 'cash',
             $data['is_billable'] ?? 0,
-            $data['client_id'] ?: null,
+            ($data['client_id'] ?? null) ?: null,
             $data['notes'] ?? null
         ]);
 

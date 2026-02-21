@@ -449,6 +449,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ── Recurring Invoices ──
     if (window.recurringManager) recurringManager.init();
+
+    // ── Expenses ──
+    if (window.expenseManager) expenseManager.init();
 });
 
 // ── Change Password (called from inline onclick in index.html) ──
