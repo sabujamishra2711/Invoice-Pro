@@ -73,6 +73,7 @@ class ApiClient {
             'client.list': { success: true, data: { clients: [] } },
             'invoice.list': { success: true, data: { invoices: [] } },
             'payment.list': { success: true, data: { payments: [] } },
+            'recurring.list': { success: true, data: { recurring_invoices: [] } },
             'dashboard.stats': {
                 success: true,
                 data: {
@@ -218,6 +219,39 @@ class ApiClient {
 
     async getRazorpayPricing() {
         return await this.request('razorpay.pricing');
+    }
+
+    // ── Recurring Invoices ──
+    async getRecurringInvoices() {
+        return await this.request('recurring.list');
+    }
+
+    async getRecurringInvoice(id) {
+        return await this.request(`recurring.get&id=${id}`);
+    }
+
+    async createRecurringInvoice(data) {
+        return await this.request('recurring.create', 'POST', data);
+    }
+
+    async updateRecurringInvoice(id, data) {
+        return await this.request(`recurring.update&id=${id}`, 'PUT', data);
+    }
+
+    async pauseRecurringInvoice(id) {
+        return await this.request(`recurring.pause&id=${id}`, 'POST');
+    }
+
+    async resumeRecurringInvoice(id) {
+        return await this.request(`recurring.resume&id=${id}`, 'POST');
+    }
+
+    async deleteRecurringInvoice(id) {
+        return await this.request(`recurring.delete&id=${id}`, 'DELETE');
+    }
+
+    async generateRecurringInvoice(id) {
+        return await this.request(`recurring.generate&id=${id}`, 'POST');
     }
 }
 

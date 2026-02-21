@@ -24,6 +24,9 @@ if (!defined('API_URL')) define('API_URL', $origin . '/invoice-management/backen
 if (!defined('LOGO_STORAGE_PATH')) define('LOGO_STORAGE_PATH', __DIR__ . '/../../storage/logos/');
 if (!defined('LOGO_PUBLIC_URL'))   define('LOGO_PUBLIC_URL',   $origin . '/invoice-management/storage/logos/');
 
+// Cron secret for recurring invoice processing
+if (!defined('CRON_SECRET')) define('CRON_SECRET', 'invoicepro_cron_2025');
+
 // Database connection
 function getDB()
 {

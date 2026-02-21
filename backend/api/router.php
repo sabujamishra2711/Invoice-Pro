@@ -63,11 +63,22 @@ function routeRequest($method, $route, $input)
         'version.limits'   => ['GET',  'VersionController@getLimits'],
         'version.plan.set' => ['POST', 'VersionController@setPlan'],
 
-        // Razorpay routes
-        'razorpay.order.create'  => ['POST', 'RazorpayController@createOrder'],
-        'razorpay.payment.verify'=> ['POST', 'RazorpayController@verifyPayment'],
-        'razorpay.pricing'       => ['GET',  'RazorpayController@pricing'],
-    ];
+          // Razorpay routes
+          'razorpay.order.create'  => ['POST', 'RazorpayController@createOrder'],
+          'razorpay.payment.verify'=> ['POST', 'RazorpayController@verifyPayment'],
+          'razorpay.pricing'       => ['GET',  'RazorpayController@pricing'],
+
+          // Recurring invoice routes
+          'recurring.list'    => ['GET',    'RecurringInvoiceController@list'],
+          'recurring.get'     => ['GET',    'RecurringInvoiceController@get'],
+          'recurring.create'  => ['POST',   'RecurringInvoiceController@create'],
+          'recurring.update'  => ['PUT',    'RecurringInvoiceController@update'],
+          'recurring.pause'   => ['POST',   'RecurringInvoiceController@pause'],
+          'recurring.resume'  => ['POST',   'RecurringInvoiceController@resume'],
+          'recurring.delete'  => ['DELETE', 'RecurringInvoiceController@delete'],
+          'recurring.generate'=> ['POST',   'RecurringInvoiceController@generateNow'],
+          'recurring.process' => ['POST',   'RecurringInvoiceController@processDue'],
+     ];
 
     // Check if route exists
     if (!isset($routes[$route])) {

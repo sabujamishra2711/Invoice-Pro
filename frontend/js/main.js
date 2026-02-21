@@ -446,6 +446,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('send-email-btn')?.addEventListener('click', () => {
         uiManager._doSendEmail();
     });
+
+    // ── Recurring Invoices ──
+    if (window.recurringManager) recurringManager.init();
 });
 
 // ── Change Password (called from inline onclick in index.html) ──

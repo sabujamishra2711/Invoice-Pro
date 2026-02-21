@@ -29,6 +29,7 @@ class UIManager {
             'invoice-form': 'invoice-form-view',
             'clients': 'clients-view',
             'payments': 'payments-view',
+            'recurring': 'recurring-view',
             'reports': 'reports-view',
             'settings': 'settings-view'
         };
@@ -61,6 +62,7 @@ class UIManager {
             'invoice-form': 'Invoice',
             'clients': 'Clients',
             'payments': 'Payments',
+            'recurring': 'Recurring Invoices',
             'reports': 'Reports',
             'settings': 'Settings'
         };
@@ -94,6 +96,7 @@ class UIManager {
                     break;
                 case 'reports': await this.loadReports(); break;
                 case 'settings': await this.loadSettings(); this.initSettingsTabs(); this.loadPlanUsage(); break;
+                case 'recurring': if (window.recurringManager) await recurringManager.load(); break;
             }
         } catch (err) {
             console.error('Error loading view data:', err);
