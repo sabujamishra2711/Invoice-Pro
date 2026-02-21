@@ -1,0 +1,28 @@
+RewriteEngine On
+RewriteBase /invoice-management/
+
+# 1. API Routes
+# Route /api/* to backend/api/index.php
+RewriteRule ^api/(.*)$ backend/api/index.php?route=$1 [QSA,L]
+
+# 2. Static Assets
+# Explicitly handle js, styles, and images from frontend folder
+RewriteRule ^js/(.*)$ frontend/js/$1 [L]
+RewriteRule ^styles/(.*)$ frontend/styles/$1 [L]
+RewriteRule ^assets/(.*)$ frontend/assets/$1 [L]
+RewriteRule ^images/(.*)$ frontend/images/$1 [L]
+
+# Give priority to files that exist in the root
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# 3. SPA Handlers
+# Route /login to login.html
+RewriteRule ^login/?$ frontend/login.html [L]
+
+# Route everything else to index.html (SPA)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ frontend/index.html [L]
+
+
