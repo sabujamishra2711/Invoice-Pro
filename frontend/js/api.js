@@ -308,6 +308,24 @@ class ApiClient {
         return await this.request(`expense.category.delete&id=${id}`, 'DELETE');
     }
 
+    // ── UPI / QR ──
+    async uploadUpiQr(formData) {
+        const url = `${this.baseUrl}/index.php?route=settings.upi.qr.upload`;
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': this.token ? `Bearer ${this.token}` : '',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        });
+        return await response.json();
+    }
+
+    async deleteUpiQr() {
+        return await this.request('settings.upi.qr.delete', 'DELETE');
+    }
+
     // ── Public Invoice Link ──
     async generatePublicLink(invoiceId) {
         return await this.request(`public.invoice.token.generate&id=${invoiceId}`, 'POST');

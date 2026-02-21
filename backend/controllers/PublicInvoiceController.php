@@ -59,14 +59,18 @@ class PublicInvoiceController
             $invoice['calculated_status'] = $status;
             $invoice['balance']           = max(0, $total - $paid);
 
-            // Use the invoice OWNER's Razorpay key (from their settings row)
-            $rzpStmt = $db->prepare("SELECT razorpay_key_id FROM settings WHERE user_id = ?");
+            // Use the invoice OWNER's payment settings (Razorpay + UPI)
+            $rzpStmt = $db->prepare("SELECT razorpay_key_id, upi_id, upi_qr_path FROM settings WHERE user_id = ?");
             $rzpStmt->execute([$invoice['user_id']]);
             $ownerSettings = $rzpStmt->fetch();
-            $rzpKeyId = $ownerSettings['razorpay_key_id'] ?? null;
+            $rzpKeyId  = $ownerSettings['razorpay_key_id'] ?? null;
+            $upiId     = $ownerSettings['upi_id']          ?? null;
+            $upiQrPath = $ownerSettings['upi_qr_path']     ?? null;
 
             $invoice['razorpay_key_id'] = $rzpKeyId;
             $invoice['payment_enabled'] = !empty($rzpKeyId) && $invoice['balance'] > 0;
+            $invoice['upi_id']          = $upiId;
+            $invoice['upi_qr_url']      = $upiQrPath ? (defined('LOGO_PUBLIC_URL') ? LOGO_PUBLIC_URL . basename($upiQrPath) : '/invoice-management/backend/uploads/logos/' . basename($upiQrPath)) : null;
 
             return [
                 'success' => true,

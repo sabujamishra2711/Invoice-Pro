@@ -1193,6 +1193,34 @@ class UIManager {
                 }
             }
 
+            // UPI fields
+            this._setVal('setting-upi-id', data.upi_id || '');
+
+            // UPI QR preview
+            const qrPreviewWrap = document.getElementById('upi-qr-preview-wrap');
+            const qrPreviewImg  = document.getElementById('upi-qr-preview-img');
+            const qrUploadArea  = document.getElementById('upi-qr-upload-area');
+            if (data.upi_qr_url && qrPreviewWrap && qrPreviewImg) {
+                qrPreviewImg.src = data.upi_qr_url;
+                qrPreviewWrap.style.display = '';
+                if (qrUploadArea) qrUploadArea.style.display = 'none';
+            } else if (qrPreviewWrap) {
+                qrPreviewWrap.style.display = 'none';
+                if (qrUploadArea) qrUploadArea.style.display = '';
+            }
+
+            // UPI status badge
+            const upiStatusBadge = document.getElementById('upi-status-badge');
+            if (upiStatusBadge) {
+                if (data.upi_id || data.upi_qr_url) {
+                    upiStatusBadge.style.display = '';
+                    upiStatusBadge.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#d1fae5;color:#065f46;font-size:0.78rem;font-weight:600;"><i class="fas fa-check-circle"></i> Configured</span>';
+                } else {
+                    upiStatusBadge.style.display = '';
+                    upiStatusBadge.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#fef3c7;color:#92400e;font-size:0.78rem;font-weight:600;"><i class="fas fa-exclamation-triangle"></i> Not configured</span>';
+                }
+            }
+
             // Show server logo if present
             const preview   = document.getElementById('logo-preview');
             const removeBtn = document.getElementById('logo-remove-btn');

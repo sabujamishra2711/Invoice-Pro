@@ -74,7 +74,26 @@
   .btn-pay:hover  { background: #4f46e5; transform: translateY(-1px); }
   .btn-pay:active { transform: translateY(0); }
   .btn-pay:disabled { opacity: .6; cursor: not-allowed; transform: none; }
-  .rzp-secure { font-size: 0.75rem; color: #94a3b8; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+    .rzp-secure { font-size: 0.75rem; color: #94a3b8; margin-top: 12px; display: flex; align-items: center; justify-content: center; gap: 5px; }
+
+    /* UPI section */
+    .upi-section { padding: 24px 28px; border-top: 1px solid #f1f5f9; }
+    .upi-divider { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .upi-divider::before, .upi-divider::after { content:''; flex:1; height:1px; background:#e2e8f0; }
+    .upi-divider span { font-size: 0.75rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px; white-space: nowrap; }
+    .upi-body { display: flex; align-items: flex-start; gap: 24px; flex-wrap: wrap; justify-content: center; }
+    .upi-qr-wrap { text-align: center; }
+    .upi-qr-wrap img { width: 160px; height: 160px; object-fit: contain; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px; background: #fff; display: block; }
+    .upi-qr-wrap p { font-size: 0.72rem; color: #94a3b8; margin-top: 6px; }
+    .upi-id-block { flex: 1; min-width: 200px; }
+    .upi-id-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: #94a3b8; margin-bottom: 8px; }
+    .upi-id-value { display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; }
+    .upi-id-text { font-size: 1rem; font-weight: 700; color: #0f172a; flex: 1; word-break: break-all; }
+    .copy-btn { background: none; border: none; cursor: pointer; color: #6366f1; font-size: 0.95rem; padding: 2px 6px; border-radius: 6px; transition: background .1s; }
+    .copy-btn:hover { background: #ede9fe; }
+    .upi-apps { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .upi-app-badge { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; background: #f1f5f9; border-radius: 20px; font-size: 0.75rem; font-weight: 600; color: #475569; }
+    .upi-note { font-size: 0.78rem; color: #94a3b8; margin-top: 12px; line-height: 1.5; }
 
   /* Paid banner */
   .paid-banner { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 20px; background: #d1fae5; border-radius: 12px; color: #065f46; font-weight: 700; font-size: 1rem; }
@@ -200,9 +219,12 @@
         if (status === 'paid') {
           return `<div class="card"><div class="card-body"><div class="paid-banner"><i class="fas fa-check-circle"></i> This invoice has been paid in full. Thank you!</div></div></div>`;
         }
-        if (!inv.payment_enabled) {
-          if (inv.razorpay_key_id) return ''; // key present but balance = 0 — shouldn't reach here
-          // Owner has not configured online payments — show info message
+        if (balance <= 0) return '';
+
+        const hasRzp = !!inv.payment_enabled;
+        const hasUpi = !!(inv.upi_id || inv.upi_qr_url);
+
+        if (!hasRzp && !hasUpi) {
           return `<div class="card">
             <div class="pay-section">
               <div style="color:#94a3b8;font-size:2rem;margin-bottom:12px;"><i class="fas fa-credit-card"></i></div>
@@ -211,16 +233,54 @@
             </div>
           </div>`;
         }
-        return `<div class="card">
-          <div class="pay-section">
+
+        // ── Razorpay block ──
+        const rzpBlock = hasRzp ? `
+          <div class="pay-section" style="border-bottom:${hasUpi ? '1px solid #f1f5f9' : 'none'};">
             <div class="pay-amount">${fmt(balance, cur)}</div>
             <div class="pay-label">Amount due</div>
             <button class="btn-pay" id="pay-btn" onclick="startPayment()">
               <i class="fas fa-lock"></i> Pay Securely
             </button>
             <div class="rzp-secure"><i class="fas fa-shield-alt"></i> Secured by Razorpay &bull; 100% safe &amp; encrypted</div>
-          </div>
-        </div>`;
+          </div>` : '';
+
+        // ── UPI block ──
+        let upiBlock = '';
+        if (hasUpi) {
+          const qrHtml = inv.upi_qr_url
+            ? `<div class="upi-qr-wrap">
+                <img src="${esc(inv.upi_qr_url)}" alt="UPI QR Code">
+                <p>Scan to pay</p>
+               </div>` : '';
+
+          const idHtml = inv.upi_id
+            ? `<div class="upi-id-block">
+                <div class="upi-id-label">UPI ID</div>
+                <div class="upi-id-value">
+                  <span class="upi-id-text" id="upi-id-text">${esc(inv.upi_id)}</span>
+                  <button class="copy-btn" onclick="copyUpiId()" title="Copy UPI ID"><i class="fas fa-copy"></i></button>
+                </div>
+                <div class="upi-apps">
+                  <span class="upi-app-badge"><i class="fas fa-mobile-alt"></i> GPay</span>
+                  <span class="upi-app-badge"><i class="fas fa-mobile-alt"></i> PhonePe</span>
+                  <span class="upi-app-badge"><i class="fas fa-mobile-alt"></i> Paytm</span>
+                  <span class="upi-app-badge"><i class="fas fa-mobile-alt"></i> BHIM</span>
+                </div>
+                <div class="upi-note">Open any UPI app, enter the UPI ID above or scan the QR code, and enter <strong>${fmt(balance, cur)}</strong> as the amount.</div>
+              </div>` : '';
+
+          const divider = hasRzp
+            ? `<div class="upi-divider"><span>Or pay via UPI</span></div>`
+            : `<div class="upi-divider"><span>Pay via UPI</span></div>`;
+
+          upiBlock = `<div class="upi-section">
+            ${divider}
+            <div class="upi-body">${qrHtml}${idHtml}</div>
+          </div>`;
+        }
+
+        return `<div class="card">${rzpBlock}${upiBlock}</div>`;
       })();
 
     app.innerHTML = `
@@ -285,6 +345,25 @@
       ${paySection}
     `;
   }
+
+  // ── Copy UPI ID ─────────────────────────────────────────────────────────────
+  window.copyUpiId = function () {
+    const text = document.getElementById('upi-id-text')?.textContent || '';
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.copy-btn');
+      if (btn) {
+        btn.innerHTML = '<i class="fas fa-check"></i>';
+        setTimeout(() => { btn.innerHTML = '<i class="fas fa-copy"></i>'; }, 2000);
+      }
+    }).catch(() => {
+      // fallback
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+    });
+  };
 
   // ── Razorpay ────────────────────────────────────────────────────────────────
   let _invoiceData = null;

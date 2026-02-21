@@ -472,6 +472,153 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // ── UPI QR file upload (auto-upload on file select) ──
+    document.getElementById('upi-qr-file-input')?.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const uploadArea  = document.getElementById('upi-qr-upload-area');
+        const previewWrap = document.getElementById('upi-qr-preview-wrap');
+        const previewImg  = document.getElementById('upi-qr-preview-img');
+        const msgEl       = document.getElementById('upi-save-msg');
+
+        if (uploadArea) uploadArea.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:1.5rem;color:#94a3b8;"></i><div style="font-size:0.82rem;color:#64748b;margin-top:8px;">Uploading…</div>';
+
+        const fd = new FormData();
+        fd.append('upi_qr', file);
+
+        try {
+            const result = await api.uploadUpiQr(fd);
+            if (result.success) {
+                const url = result.data.upi_qr_url;
+                if (previewImg) previewImg.src = url;
+                if (previewWrap) previewWrap.style.display = '';
+                if (uploadArea) { uploadArea.style.display = 'none'; uploadArea.innerHTML = ''; }
+                // reset file input
+                e.target.value = '';
+                // update status badge
+                const badge = document.getElementById('upi-status-badge');
+                if (badge) {
+                    badge.style.display = '';
+                    badge.innerHTML = '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#d1fae5;color:#065f46;font-size:0.78rem;font-weight:600;"><i class="fas fa-check-circle"></i> Configured</span>';
+                }
+                if (msgEl) {
+                    msgEl.style.display = 'block';
+                    msgEl.style.background = 'rgba(16,185,129,0.1)';
+                    msgEl.style.border = '1px solid rgba(16,185,129,0.2)';
+                    msgEl.style.color = '#065f46';
+                    msgEl.innerHTML = '<i class="fas fa-check-circle" style="margin-right:6px;"></i>QR code uploaded.';
+                    setTimeout(() => { if (msgEl) msgEl.style.display = 'none'; }, 3000);
+                }
+            } else {
+                if (uploadArea) { uploadArea.innerHTML = ''; uiManager.loadSettings(); } // restore
+                uiManager.showToast('error', 'Upload Failed', result.message || 'Could not upload QR code.');
+            }
+        } catch (err) {
+            if (uploadArea) { uploadArea.innerHTML = ''; uiManager.loadSettings(); }
+            uiManager.showToast('error', 'Upload Failed', 'Network error.');
+        }
+    });
+
+    // ── Delete UPI QR ──
+    document.getElementById('delete-upi-qr-btn')?.addEventListener('click', async () => {
+        if (!confirm('Remove the UPI QR code image?')) return;
+
+        const previewWrap = document.getElementById('upi-qr-preview-wrap');
+        const uploadArea  = document.getElementById('upi-qr-upload-area');
+        const msgEl       = document.getElementById('upi-save-msg');
+
+        try {
+            const result = await api.deleteUpiQr();
+            if (result.success) {
+                if (previewWrap) previewWrap.style.display = 'none';
+                if (uploadArea) { uploadArea.style.display = ''; uploadArea.innerHTML = `
+                    <i class="fas fa-qrcode" style="font-size:1.8rem;color:#94a3b8;margin-bottom:8px;display:block;"></i>
+                    <div style="font-size:0.85rem;color:#64748b;font-weight:600;">Click to upload QR code</div>
+                    <div style="font-size:0.75rem;color:#94a3b8;margin-top:4px;">PNG, JPG, WebP — max 2 MB</div>`; }
+                // re-bind click since we replaced innerHTML
+                uploadArea?.addEventListener('click', () => document.getElementById('upi-qr-file-input')?.click());
+                if (msgEl) {
+                    msgEl.style.display = 'block';
+                    msgEl.style.background = 'rgba(16,185,129,0.1)';
+                    msgEl.style.border = '1px solid rgba(16,185,129,0.2)';
+                    msgEl.style.color = '#065f46';
+                    msgEl.innerHTML = '<i class="fas fa-check-circle" style="margin-right:6px;"></i>QR code removed.';
+                    setTimeout(() => { if (msgEl) msgEl.style.display = 'none'; }, 3000);
+                }
+            } else {
+                uiManager.showToast('error', 'Error', result.message || 'Could not remove QR code.');
+            }
+        } catch (err) {
+            uiManager.showToast('error', 'Error', 'Network error.');
+        }
+    });
+
+    // ── Save UPI ID ──
+    document.getElementById('save-upi-btn')?.addEventListener('click', async () => {
+        const upiId = document.getElementById('setting-upi-id')?.value.trim() || '';
+        const msgEl = document.getElementById('upi-save-msg');
+        const btn   = document.getElementById('save-upi-btn');
+        const badge = document.getElementById('upi-status-badge');
+
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'; }
+        if (msgEl) msgEl.style.display = 'none';
+
+        try {
+            const current = await api.getSettings();
+            const s = current?.data?.settings || current?.data || {};
+
+            const result = await api.updateSettings({
+                business_name:       s.business_name   || '',
+                address:             s.address         || null,
+                gst_number:          s.gst_number      || null,
+                default_tax:         s.default_tax      || 18,
+                payment_terms:       s.payment_terms    || null,
+                invoice_prefix:      s.invoice_prefix   || 'INV',
+                number_format:       s.number_format    || 'YYYY-MM-NNNN',
+                razorpay_key_id:     s.razorpay_key_id  || null,
+                razorpay_key_secret: '••••••••',         // keep existing secret
+                upi_id:              upiId || null,
+            });
+
+            if (result.success) {
+                if (msgEl) {
+                    msgEl.style.display = 'block';
+                    msgEl.style.background = 'rgba(16,185,129,0.1)';
+                    msgEl.style.border = '1px solid rgba(16,185,129,0.2)';
+                    msgEl.style.color = '#065f46';
+                    msgEl.innerHTML = '<i class="fas fa-check-circle" style="margin-right:6px;"></i>UPI ID saved.';
+                    setTimeout(() => { if (msgEl) msgEl.style.display = 'none'; }, 3000);
+                }
+                if (badge) {
+                    const configured = !!(upiId || result.data?.settings?.upi_qr_url);
+                    badge.style.display = '';
+                    badge.innerHTML = configured
+                        ? '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#d1fae5;color:#065f46;font-size:0.78rem;font-weight:600;"><i class="fas fa-check-circle"></i> Configured</span>'
+                        : '<span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;background:#fef3c7;color:#92400e;font-size:0.78rem;font-weight:600;"><i class="fas fa-exclamation-triangle"></i> Not configured</span>';
+                }
+            } else {
+                if (msgEl) {
+                    msgEl.style.display = 'block';
+                    msgEl.style.background = 'rgba(239,68,68,0.1)';
+                    msgEl.style.border = '1px solid rgba(239,68,68,0.2)';
+                    msgEl.style.color = '#991b1b';
+                    msgEl.innerHTML = '<i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>' + (result.message || 'Save failed.');
+                }
+            }
+        } catch (err) {
+            if (msgEl) {
+                msgEl.style.display = 'block';
+                msgEl.style.background = 'rgba(239,68,68,0.1)';
+                msgEl.style.border = '1px solid rgba(239,68,68,0.2)';
+                msgEl.style.color = '#991b1b';
+                msgEl.innerHTML = '<i class="fas fa-exclamation-circle" style="margin-right:6px;"></i>Network error.';
+            }
+        } finally {
+            if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-check"></i> Save UPI Settings'; }
+        }
+    });
+
     document.getElementById('save-payment-gateway-btn')?.addEventListener('click', async () => {
         const keyId     = document.getElementById('setting-rzp-key-id')?.value.trim() || '';
         const keySecret = document.getElementById('setting-rzp-key-secret')?.value || '';
