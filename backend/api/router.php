@@ -53,6 +53,11 @@ function routeRequest($method, $route, $input)
         // Version / Plan routes
         'version.limits'   => ['GET',  'VersionController@getLimits'],
         'version.plan.set' => ['POST', 'VersionController@setPlan'],
+
+        // Razorpay routes
+        'razorpay.order.create'  => ['POST', 'RazorpayController@createOrder'],
+        'razorpay.payment.verify'=> ['POST', 'RazorpayController@verifyPayment'],
+        'razorpay.pricing'       => ['GET',  'RazorpayController@pricing'],
     ];
 
     // Check if route exists

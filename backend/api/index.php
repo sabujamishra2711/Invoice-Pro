@@ -57,7 +57,7 @@ try {
     $input = json_decode(file_get_contents('php://input'), true) ?? [];
 
     // Auth routes don't require token or CSRF
-    $publicRoutes = ['auth.login', 'auth.register'];
+        $publicRoutes = ['auth.login', 'auth.register', 'razorpay.pricing'];
     $isPublicRoute = in_array($route, $publicRoutes);
 
     // Authenticate for non-public routes
